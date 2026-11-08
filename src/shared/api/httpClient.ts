@@ -1,5 +1,11 @@
 export class ApiError extends Error {
-  constructor(public readonly status: number, message: string) {
+  /** `code` y `details` vienen de `error.code` y `error.details` de la API, si la respuesta los trae. */
+  constructor(
+    public readonly status: number,
+    message: string,
+    public readonly code?: string,
+    public readonly details?: unknown,
+  ) {
     super(message);
   }
 }
@@ -21,7 +27,8 @@ export async function request<T>(path: string, method: string, body?: object, to
     const message = typeof data?.error?.message === 'string'
       ? data.error.message
       : 'No se pudo completar la solicitud. Inténtalo de nuevo.';
-    throw new ApiError(response.status, message);
+    const code = typeof data?.error?.code === 'string' ? data.error.code : undefined;
+    throw new ApiError(response.status, message, code, data?.error?.details);
   }
   return response.status === 204 ? undefined as T : response.json();
 }

@@ -107,3 +107,13 @@
 @media (max-width: 760px) {
   .course-form-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+.course-outcome {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
+  gap: var(--space-3);
+}
+
+@media (max-width: 760px) {
+  .course-outcome { grid-template-columns: minmax(0, 1fr); }
+}

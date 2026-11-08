@@ -28,4 +28,24 @@ describe('Formulario de cursos', () => {
     expect(courseFormProblem(courseRequest({ ...form, units: [] }))).toMatch(/al menos una unidad/);
     expect(courseFormProblem(courseRequest({ ...form, units: [{ title: '  ', outcomes: '' }] }))).toMatch(/título de la unidad 1/);
   });
+
+  it('conserva los identificadores guardados y omite los de las unidades y resultados nuevos', () => {
+    const request = courseRequest({
+      ...form,
+      units: [
+        { id: 'unidad-guardada', title: 'Transporte', outcomes: 'Resultado nuevo', savedOutcomes: [
+          { id: 'resultado-guardado', code: 'RA1.1', text: 'Texto actualizado' },
+        ] },
+        { title: 'Capa de red', outcomes: '' },
+      ],
+    });
+
+    expect(request.units).toEqual([
+      { id: 'unidad-guardada', title: 'Transporte', outcomes: [
+        { id: 'resultado-guardado', code: 'RA1.1', text: 'Texto actualizado' },
+        { text: 'Resultado nuevo' },
+      ] },
+      { title: 'Capa de red', outcomes: [] },
+    ]);
+  });
 });

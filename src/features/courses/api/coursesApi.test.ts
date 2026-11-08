@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Course } from '../../../shared/types/courses';
-import { createCourse, listCourses } from './coursesApi';
+import { createCourse, listCourses, updateCourse } from './coursesApi';
 
 const newCourse = {
   code: 'RED-301', name: 'Redes', term: '2026-II', summary: '', learningGoal: '',
@@ -60,5 +60,18 @@ describe('API de cursos', () => {
     await expect(createCourse('token-docente', newCourse)).rejects.toMatchObject({
       status: 409, message: 'Ya existe un curso con ese código.',
     });
+  });
+
+  it('actualiza el curso existente con sus identificadores mediante PUT', async () => {
+    const course = { ...newCourse, units: [{ ...newCourse.units[0], id: 'unidad-1' }] };
+    const saved = { ...course, id: 'curso-1' };
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json(saved));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(updateCourse('token-docente', 'curso-1', course)).resolves.toEqual(saved);
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/courses/curso-1', expect.objectContaining({
+      method: 'PUT', body: JSON.stringify(course),
+    }));
+    expect(new Headers(fetchMock.mock.calls[0][1]?.headers).get('Authorization')).toBe('Bearer token-docente');
   });
 });

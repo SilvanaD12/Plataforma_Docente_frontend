@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { ApiError, errorMessage } from '../../../shared/api/httpClient';
 import type { Course } from '../../../shared/types/courses';
-import { createCourse, listCourses } from '../api/coursesApi';
+import { createCourse, listCourses, updateCourse } from '../api/coursesApi';
 import type { CourseRequest } from '../model/courseForm';
 import '../courses.css';
 
@@ -18,7 +18,7 @@ interface CoursesLayoutProps {
 
 export interface CoursesContext {
   courses: Course[];
-  saveNewCourse: (course: CourseRequest) => Promise<Course>;
+  saveCourse: (course: CourseRequest, courseId?: string) => Promise<Course>;
 }
 
 export function CoursesLayout({ token, onSessionExpired }: CoursesLayoutProps) {
@@ -42,12 +42,16 @@ export function CoursesLayout({ token, onSessionExpired }: CoursesLayoutProps) {
     return () => { active = false; };
   }, [token, onSessionExpired, attempt]);
 
-  async function saveNewCourse(course: CourseRequest) {
+  async function saveCourse(course: CourseRequest, courseId?: string) {
     try {
-      const saved = await createCourse(token, course);
-      setState((current) => current.status === 'ready'
-        ? { status: 'ready', courses: [...current.courses, saved] }
-        : current);
+      const saved = courseId ? await updateCourse(token, courseId, course) : await createCourse(token, course);
+      setState((current) => {
+        if (current.status !== 'ready') return current;
+        const courses = courseId
+          ? current.courses.map((item) => item.id === courseId ? saved : item)
+          : [...current.courses, saved];
+        return { status: 'ready', courses };
+      });
       return saved;
     } catch (cause) {
       if (cause instanceof ApiError && cause.status === 401) onSessionExpired(token);
@@ -56,7 +60,7 @@ export function CoursesLayout({ token, onSessionExpired }: CoursesLayoutProps) {
   }
 
   if (state.status === 'ready') {
-    return <Outlet context={{ courses: state.courses, saveNewCourse } satisfies CoursesContext} />;
+    return <Outlet context={{ courses: state.courses, saveCourse } satisfies CoursesContext} />;
   }
 
   return (

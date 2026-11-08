@@ -2,7 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthShell } from '../features/auth/components/AuthShell';
 import { useSession } from '../features/auth/hooks/useSession';
 import { AuthPage } from '../features/auth/pages/AuthPage';
-import { CourseCreatePage } from '../features/courses/pages/CourseCreatePage';
+import { CourseFormPage } from '../features/courses/pages/CourseFormPage';
 import { CourseDetailPage } from '../features/courses/pages/CourseDetailPage';
 import { CourseListPage } from '../features/courses/pages/CourseListPage';
 import { CoursesLayout } from '../features/courses/pages/CoursesLayout';
@@ -37,8 +37,9 @@ export function App() {
       <Route element={session ? <TeacherWorkspace session={session} onClose={closeSession} /> : <Navigate to="/login" replace />}>
         <Route path="/courses" element={session && <CoursesLayout key={session.token} token={session.token} onSessionExpired={closeSession} />}>
           <Route index element={<CourseListPage />} />
-          <Route path="new" element={<CourseCreatePage />} />
+          <Route path="new" element={<CourseFormPage />} />
           <Route path=":courseId" element={<CourseDetailPage />} />
+          <Route path=":courseId/edit" element={<CourseFormPage />} />
           <Route path=":courseId/units/:unitId" element={<UnitLayout />}>
             <Route index element={<UnitOverviewPage />} />
           </Route>

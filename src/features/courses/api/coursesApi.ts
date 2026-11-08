@@ -9,3 +9,7 @@ export function listCourses(token: string) {
 export function createCourse(token: string, course: CourseRequest) {
   return request<Course>('/courses', 'POST', course, token);
 }
+
+export function updateCourse(token: string, courseId: string, course: CourseRequest) {
+  return request<Course>('/courses/' + encodeURIComponent(courseId), 'PUT', course, token);
+}

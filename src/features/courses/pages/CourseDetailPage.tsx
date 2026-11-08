@@ -18,9 +18,12 @@ export function CourseDetailPage() {
   return (
     <div className="stack stack--loose">
       <nav aria-label="Ruta del curso"><Link to="/courses">Mis cursos</Link></nav>
-      <header className="stack course-heading">
-        <p className="overline">{course.code} · {course.term}</p>
-        <h1>{course.name}</h1>
+      <header className="course-page-header">
+        <div className="stack course-heading">
+          <p className="overline">{course.code} · {course.term}</p>
+          <h1>{course.name}</h1>
+        </div>
+        <Link className="btn" to="edit">Editar curso</Link>
       </header>
       {(course.summary || course.learningGoal) && (
         <div className="card">

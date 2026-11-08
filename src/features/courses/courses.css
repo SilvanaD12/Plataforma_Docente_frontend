@@ -1,0 +1,119 @@
+.course-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: var(--card-gap);
+}
+
+.course-card {
+  gap: var(--space-3);
+}
+
+.course-card__text {
+  font-size: var(--text-ui-size);
+  color: var(--color-muted);
+}
+
+.course-card__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  font-size: var(--text-caption-size);
+  color: var(--color-muted);
+  margin-top: auto;
+}
+
+.unit-card {
+  gap: var(--space-3);
+}
+
+.unit-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.outcome-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-ui-size);
+}
+
+.outcome-list strong {
+  color: var(--color-accent);
+  margin-right: var(--space-1);
+}
+.course-heading {
+  gap: var(--space-2);
+}
+
+.course-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+@media (max-width: 640px) {
+  .unit-card__head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+.course-page-header,
+.course-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.course-page-header {
+  justify-content: space-between;
+}
+
+.course-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4) var(--space-5);
+}
+
+.course-textarea {
+  padding: var(--space-3);
+  resize: vertical;
+}
+
+.unit-fieldset {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-inner);
+  margin: 0;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.unit-fieldset__legend {
+  padding: 0 var(--space-2);
+  font-weight: var(--weight-semibold);
+}
+
+@media (max-width: 760px) {
+  .course-form-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.course-outcome {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
+  gap: var(--space-3);
+}
+
+@media (max-width: 760px) {
+  .course-outcome { grid-template-columns: minmax(0, 1fr); }
+}

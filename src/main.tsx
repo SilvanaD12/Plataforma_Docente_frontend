@@ -3,6 +3,8 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Link, Navigate, Route, Routes } from 'react-router-dom';
 import { ApiError, errorMessage, getProfile, register, signIn, signOut, type Session } from './auth';
+import { AuthShell } from './AuthShell';
+import './tokens.css';
 import './styles.css';
 
 const tokenKey = 'plataforma5e.session';
@@ -37,27 +39,45 @@ function AuthForm({ creating, onSession }: { creating: boolean; onSession: (sess
     }
   }
 
-  const title = creating ? 'Crear cuenta' : 'Iniciar sesión';
+  const action = creating ? 'Crear cuenta' : 'Iniciar sesión';
   return (
-    <section className="panel" aria-labelledby="form-title">
-      <h1 id="form-title">{title}</h1>
-      <p>{creating ? 'Registra tu cuenta docente para acceder a tu espacio.' : 'Accede a tu espacio docente.'}</p>
-      <form onSubmit={submit}>
-        {creating && <label>Nombre completo<input name="name" autoComplete="name" minLength={2} maxLength={100} required /></label>}
-        <label>Correo electrónico<input name="email" type="email" autoComplete="email" maxLength={254} required /></label>
-        <label>
-          Contraseña
-          <input name="password" type="password" autoComplete={creating ? 'new-password' : 'current-password'} minLength={creating ? 8 : 1} maxLength={200} required />
-          {creating && <small>Usa al menos 8 caracteres.</small>}
+    <AuthShell
+      title={creating ? action : 'Inicio de sesión'}
+      description={creating ? 'Regístrate para guardar tus cursos, tu material y tus recursos.' : 'Ingresa con tu cuenta de docente.'}
+    >
+      <form className="stack" onSubmit={submit}>
+        {error && <p className="alert alert--warn" role="alert">{error}</p>}
+        {creating && (
+          <label className="field">
+            <span className="field__label">Nombre y apellido</span>
+            <input className="input" name="name" autoComplete="name" minLength={2} maxLength={100} required />
+          </label>
+        )}
+        <label className="field">
+          <span className="field__label">Correo electrónico</span>
+          <input className="input" name="email" type="email" autoComplete="email" maxLength={254} required />
         </label>
-        {creating && <label>Confirmar contraseña<input name="confirmation" type="password" autoComplete="new-password" required /></label>}
-        {error && <p className="error" role="alert">{error}</p>}
-        <button disabled={pending}>{pending ? 'Un momento…' : title}</button>
+        <label className="field">
+          <span className="field__label">Contraseña</span>
+          <input className="input" name="password" type="password" autoComplete={creating ? 'new-password' : 'current-password'} minLength={creating ? 8 : 1} maxLength={200} aria-describedby={creating ? 'password-hint' : undefined} required />
+        </label>
+        {creating && (
+          <>
+            <p className="field__hint" id="password-hint">Al menos 8 caracteres.</p>
+            <label className="field">
+              <span className="field__label">Repite la contraseña</span>
+              <input className="input" name="confirmation" type="password" autoComplete="new-password" maxLength={200} required />
+            </label>
+          </>
+        )}
+        <button className="btn btn--primary btn--block" aria-busy={pending} disabled={pending}>
+          {pending ? 'Un momento…' : action}
+        </button>
       </form>
-      <p className="alternate">
-        {creating ? <>¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link></> : <>¿Todavía no tienes cuenta? <Link to="/registro">Regístrate</Link></>}
+      <p className="auth__switch">
+        {creating ? <>¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link></> : <>¿No tienes cuenta? <Link to="/registro">Crear cuenta</Link></>}
       </p>
-    </section>
+    </AuthShell>
   );
 }
 
@@ -84,13 +104,22 @@ function Workspace({ session, onClose }: { session: Session; onClose: () => void
   }
 
   return (
-    <section className="panel" aria-labelledby="workspace-title">
-      <h1 id="workspace-title">Tu espacio docente</h1>
-      <p>Sesión iniciada como <strong>{session.name}</strong>.</p>
-      <p className="email">{session.email}</p>
-      {error && <p className="error" role="alert">{error}</p>}
-      <button type="button" disabled={pending} onClick={logout}>{pending ? 'Cerrando sesión…' : 'Cerrar sesión'}</button>
-    </section>
+    <div className="app">
+      <aside className="sidebar" aria-label="Cuenta docente">
+        <p className="sidebar__brand">Plataforma Docente</p>
+        <div className="sidebar__footer">
+          <div className="sidebar__user"><strong>{session.name}</strong><span>{session.email}</span></div>
+          <button className="sidebar__logout" type="button" disabled={pending} onClick={logout}>
+            {pending ? 'Cerrando sesión…' : 'Cerrar sesión'}
+          </button>
+        </div>
+      </aside>
+      <main className="workspace stack" id="contenido">
+        <h1>Tu espacio docente</h1>
+        <p className="muted">Sesión iniciada como <strong>{session.name}</strong>.</p>
+        {error && <p className="alert alert--warn" role="alert">{error}</p>}
+      </main>
+    </div>
   );
 }
 
@@ -134,15 +163,13 @@ function App() {
   }
 
   return (
-    <main className="layout">
-      <header className="brand"><span aria-hidden="true">5E</span> Plataforma Docente</header>
-      {checking ? <p className="panel" role="status">Verificando tu sesión…</p>
+    <>
+      {checking ? <AuthShell title="Tu sesión" description="Verificando tu acceso…"><p className="muted" role="status">Un momento…</p></AuthShell>
         : restoreError ? (
-          <section className="panel">
-            <h1>No pudimos verificar tu sesión</h1>
-            <p className="error" role="alert">{restoreError}</p>
-            <button type="button" onClick={() => window.location.reload()}>Reintentar</button>
-          </section>
+          <AuthShell title="No pudimos verificar tu sesión" description="Intenta conectar de nuevo con el servidor.">
+            <p className="alert alert--warn" role="alert">{restoreError}</p>
+            <button className="btn btn--primary" type="button" onClick={() => window.location.reload()}>Reintentar</button>
+          </AuthShell>
         ) : (
           <Routes>
             <Route path="/login" element={session ? <Navigate to="/inicio" replace /> : <AuthForm key="login" creating={false} onSession={openSession} />} />
@@ -151,7 +178,7 @@ function App() {
             <Route path="*" element={<Navigate to={session ? '/inicio' : '/login'} replace />} />
           </Routes>
         )}
-    </main>
+    </>
   );
 }
 

@@ -1,0 +1,28 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #17213a;
+  background: #f1f5fa;
+  line-height: 1.5;
+  font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+.layout { width: min(calc(100% - 2rem), 30rem); margin: clamp(2rem, 10vh, 6rem) auto; }
+.brand { display: flex; align-items: center; gap: .75rem; margin-bottom: 1.25rem; font-weight: 700; }
+.brand span { border-radius: .65rem; background: #1e4896; color: white; padding: .45rem .65rem; }
+.panel { background: white; border: 1px solid #d9e1eb; border-radius: 1rem; padding: clamp(1.25rem, 5vw, 2rem); }
+h1 { font-size: 1.65rem; line-height: 1.2; margin: 0; }
+p { margin: .65rem 0 1.2rem; }
+form { display: grid; gap: 1rem; }
+label { display: grid; gap: .3rem; font-weight: 600; }
+input, button { font: inherit; border-radius: .5rem; }
+input { width: 100%; padding: .65rem .75rem; border: 1px solid #8494ac; color: inherit; }
+small { color: #485978; font-weight: 400; }
+button { padding: .65rem 1rem; border: 0; background: #1e4896; color: white; font-weight: 700; cursor: pointer; }
+button:disabled { opacity: .65; cursor: wait; }
+:focus-visible { outline: 3px solid #3774d3; outline-offset: 3px; }
+a { color: #1e4896; font-weight: 600; }
+.error { color: #9a2034; background: #fff2f3; border-radius: .5rem; padding: .6rem .75rem; margin: 0 0 .65rem; }
+.alternate { margin: 1.1rem 0 0; }
+.email { overflow-wrap: anywhere; }

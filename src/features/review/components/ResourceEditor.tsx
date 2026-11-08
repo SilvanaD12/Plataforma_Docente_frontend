@@ -3,6 +3,7 @@ import { reviewStatusLabel, type DistractorDecision, type Resource } from '../mo
 import {
   afterSaveFailure,
   afterSaveSuccess,
+  approvalHint,
   canApprove,
   canSave,
   editDraft,
@@ -107,6 +108,7 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry }: Resource
         </fieldset>
       ))}
 
+      {isDirty(state) && approvalHint(state) && <p className="muted">{approvalHint(state)}</p>}
       {!isDirty(state) && saved.approvalBlockers.length > 0 && (
         <ul className="muted">
           {saved.approvalBlockers.map((blocker) => <li key={blocker}>{blocker}</li>)}

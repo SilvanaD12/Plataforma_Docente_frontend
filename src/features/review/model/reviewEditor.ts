@@ -51,13 +51,28 @@ export function canSave(state: EditorState): boolean {
   return !state.conflict;
 }
 
+/** Distractores que el docente todavía no decidió (la respuesta correcta no se decide). */
+export function pendingDistractors(resource: Resource): number {
+  return resource.options?.filter((option) => !option.isCorrect && option.decision === 'pendiente').length ?? 0;
+}
+
 /**
- * Sin cambios, se aprueba solo si el servidor no informa bloqueos. Con cambios se puede intentar: el servidor verifica
- * la versión editada antes de aprobar y, si hay un bloqueo, responde con su motivo.
+ * Lo único que se comprueba en el navegador es que cada distractor tenga una decisión: así «Aprobar» se activa recién
+ * cuando el docente decidió todas las alternativas. Las demás reglas (mínimo de aceptados, respuesta correcta,
+ * verificación y multimedia) las aplica el servidor al guardar, y si alguna falla responde con su motivo.
  */
 export function canApprove(state: EditorState): boolean {
-  if (state.conflict) return false;
+  if (state.conflict || pendingDistractors(state.draft) > 0) return false;
   return isDirty(state) || state.saved.approvalBlockers.length === 0;
+}
+
+/** Aviso junto al botón de aprobar mientras queden distractores por decidir (mismo texto que el servidor). */
+export function approvalHint(state: EditorState): string | null {
+  const pending = pendingDistractors(state.draft);
+  if (pending === 0) return null;
+  return pending === 1
+    ? 'Decide el distractor pendiente para poder aprobar.'
+    : `Decide los ${pending} distractores pendientes para poder aprobar.`;
 }
 
 export function afterSaveSuccess(state: EditorState, saved: Resource): EditorState {

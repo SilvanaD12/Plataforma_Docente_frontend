@@ -43,6 +43,10 @@ describe('editor de un recurso', () => {
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Aprobar<\/button>/);
   });
 
+  it('mientras haya distractores por decidir, lo indica junto al botón de aprobar', () => {
+    expect(render(resource())).toContain('Decide el distractor pendiente para poder aprobar.');
+  });
+
   it('muestra el aviso de fiabilidad de un distractor (REV-C4)', () => {
     expect(render(resource())).toContain('El material también lo presenta como respuesta.');
   });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '../../../shared/api/httpClient';
-import type { Resource } from './resource';
+import type { DistractorDecision, Resource } from './resource';
 import {
   CONFLICT_MESSAGE,
   RESET_NOTICE,
@@ -8,8 +8,8 @@ import {
   afterSaveSuccess,
   approvalHint,
   canApprove,
-  pendingDistractors,
   canSave,
+  distractorProblem,
   editDraft,
   editOption,
   isDirty,
@@ -56,46 +56,61 @@ describe('edición de un recurso', () => {
 });
 
 describe('cuándo se ofrece aprobar', () => {
-  const decided = () => resource({
-    options: resource().options!.map((option) => (option.isCorrect ? option : { ...option, decision: 'aceptado' as const })),
+  /** Un ítem con la clave y tres distractores, con las decisiones indicadas. */
+  const item = (decisions: DistractorDecision[], overrides: Partial<Resource> = {}) => resource({
+    options: [
+      resource().options![0],
+      ...decisions.map((decision, index) => ({
+        id: `d${index}`, text: `Distractor ${index}`, isCorrect: false, feedback: '', sourceFragmentIds: [],
+        decision, discardReason: null, edited: false,
+      })),
+    ],
+    ...overrides,
   });
 
-  it('sin cambios, solo si el servidor no informa bloqueos', () => {
-    expect(canApprove(startEditing(decided()))).toBe(true);
-    expect(canApprove(startEditing({ ...decided(), approvalBlockers: ['El respaldo es insuficiente.'] }))).toBe(false);
+  it('1 aceptado y 2 por decidir: no se ofrece aprobar', () => {
+    const state = startEditing(item(['aceptado', 'pendiente', 'pendiente']));
+    expect(distractorProblem(state.draft)).toBe('Decide los 2 distractores pendientes para poder aprobar.');
+    expect(canApprove(state)).toBe(false);
+  });
+
+  it('1 aceptado y 2 descartados: no se ofrece aprobar', () => {
+    const state = startEditing(item(['aceptado', 'descartado', 'descartado']));
+    expect(distractorProblem(state.draft)).toBe('Acepta al menos 2 distractores para poder aprobar.');
+    expect(canApprove(state)).toBe(false);
+  });
+
+  it('2 aceptados: se ofrece aprobar', () => {
+    const state = startEditing(item(['aceptado', 'aceptado', 'descartado']));
+    expect(distractorProblem(state.draft)).toBeNull();
+    expect(canApprove(state)).toBe(true);
+  });
+
+  it('el aviso junto al botón cambia a medida que el docente decide', () => {
+    let state = startEditing(item(['pendiente', 'pendiente', 'pendiente']));
+    expect(approvalHint(state)).toBe('Decide los 3 distractores pendientes para poder aprobar.');
+    state = editOption(state, 'd0', { decision: 'aceptado' });
+    state = editOption(state, 'd1', { decision: 'descartado' });
+    expect(approvalHint(state)).toBe('Decide el distractor pendiente para poder aprobar.');
+    state = editOption(state, 'd2', { decision: 'descartado' });
+    expect(approvalHint(state)).toBe('Acepta al menos 2 distractores para poder aprobar.');
+    state = editOption(state, 'd2', { decision: 'aceptado' });
+    expect(approvalHint(state)).toBeNull();
+    expect(canApprove(state)).toBe(true);
+  });
+
+  it('sin cambios, además hace falta que el servidor no informe bloqueos', () => {
+    expect(canApprove(startEditing(item(['aceptado', 'aceptado', 'descartado'], { approvalBlockers: ['El respaldo es insuficiente.'] })))).toBe(false);
   });
 
   it('con cambios sin guardar se puede intentar: el servidor verifica la versión editada antes de aprobar', () => {
-    const state = editDraft(startEditing({ ...decided(), approvalBlockers: ['El respaldo es insuficiente.'] }), { body: 'Corregido.' });
-    expect(canApprove(state)).toBe(true);
+    const base = item(['aceptado', 'aceptado', 'descartado'], { approvalBlockers: ['El respaldo es insuficiente.'] });
+    expect(canApprove(editDraft(startEditing(base), { body: 'Corregido.' }))).toBe(true);
   });
 
-  it('mientras quede un distractor por decidir no se ofrece aprobar, aunque haya cambios', () => {
-    const twoPending = resource({ options: [
-      ...resource().options!,
-      { id: 'c', text: 'IP', isCorrect: false, feedback: '', sourceFragmentIds: [], decision: 'pendiente', discardReason: null, edited: false },
-    ] });
-    let state = editOption(startEditing(twoPending), 'b', { decision: 'aceptado' });
-    expect(pendingDistractors(state.draft)).toBe(1);
-    expect(canApprove(state)).toBe(false);
-    expect(approvalHint(state)).toBe('Decide el distractor pendiente para poder aprobar.');
-
-    state = editOption(state, 'c', { decision: 'descartado' });
-    expect(pendingDistractors(state.draft)).toBe(0);
-    expect(canApprove(state)).toBe(true);
-    expect(approvalHint(state)).toBeNull();
-  });
-
-  it('el aviso usa el plural cuando quedan varios distractores', () => {
-    const state = startEditing(resource({ options: [
-      ...resource().options!,
-      { id: 'c', text: 'IP', isCorrect: false, feedback: '', sourceFragmentIds: [], decision: 'pendiente', discardReason: null, edited: false },
-    ] }));
-    expect(approvalHint(state)).toBe('Decide los 2 distractores pendientes para poder aprobar.');
-  });
-
-  it('un recurso sin alternativas no tiene distractores que decidir', () => {
-    expect(pendingDistractors(resource({ options: null }))).toBe(0);
+  it('un recurso sin alternativas no tiene regla de distractores', () => {
+    expect(distractorProblem(resource({ options: null }))).toBeNull();
+    expect(canApprove(startEditing(resource({ options: null })))).toBe(true);
   });
 
   it('durante un conflicto de versión no se aprueba', () => {

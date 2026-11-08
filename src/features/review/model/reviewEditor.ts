@@ -51,28 +51,42 @@ export function canSave(state: EditorState): boolean {
   return !state.conflict;
 }
 
-/** Distractores que el docente todavía no decidió (la respuesta correcta no se decide). */
-export function pendingDistractors(resource: Resource): number {
-  return resource.options?.filter((option) => !option.isCorrect && option.decision === 'pendiente').length ?? 0;
+/** Mínimo de distractores aceptados para aprobar; es el mismo que exige el servidor (`MIN_ACCEPTED_DISTRACTORS`). */
+export const MIN_ACCEPTED_DISTRACTORS = 2;
+
+/**
+ * La regla de los distractores del servidor, aplicada al borrador: decidir todos y aceptar al menos dos. Devuelve el
+ * motivo con el mismo texto que el servidor, o null si se cumple. Un recurso sin alternativas no tiene esta regla.
+ */
+export function distractorProblem(resource: Resource): string | null {
+  const distractors = resource.options?.filter((option) => !option.isCorrect) ?? [];
+  if (!resource.options) return null;
+  const pending = distractors.filter((option) => option.decision === 'pendiente').length;
+  if (pending > 0) {
+    return pending === 1
+      ? 'Decide el distractor pendiente para poder aprobar.'
+      : `Decide los ${pending} distractores pendientes para poder aprobar.`;
+  }
+  const accepted = distractors.filter((option) => option.decision === 'aceptado').length;
+  if (accepted < MIN_ACCEPTED_DISTRACTORS) {
+    return `Acepta al menos ${MIN_ACCEPTED_DISTRACTORS} distractores para poder aprobar.`;
+  }
+  return null;
 }
 
 /**
- * Lo único que se comprueba en el navegador es que cada distractor tenga una decisión: así «Aprobar» se activa recién
- * cuando el docente decidió todas las alternativas. Las demás reglas (mínimo de aceptados, respuesta correcta,
- * verificación y multimedia) las aplica el servidor al guardar, y si alguna falla responde con su motivo.
+ * «Aprobar» se ofrece solo si el borrador cumple la regla de los distractores, para no activar el botón cuando el
+ * servidor lo va a rechazar. Las demás reglas (respuesta correcta, verificación y multimedia) las aplica el servidor al
+ * guardar la versión editada; sin cambios, se usan los bloqueos que él ya informó.
  */
 export function canApprove(state: EditorState): boolean {
-  if (state.conflict || pendingDistractors(state.draft) > 0) return false;
+  if (state.conflict || distractorProblem(state.draft) !== null) return false;
   return isDirty(state) || state.saved.approvalBlockers.length === 0;
 }
 
-/** Aviso junto al botón de aprobar mientras queden distractores por decidir (mismo texto que el servidor). */
+/** Aviso junto al botón de aprobar mientras el borrador no cumpla la regla de los distractores. */
 export function approvalHint(state: EditorState): string | null {
-  const pending = pendingDistractors(state.draft);
-  if (pending === 0) return null;
-  return pending === 1
-    ? 'Decide el distractor pendiente para poder aprobar.'
-    : `Decide los ${pending} distractores pendientes para poder aprobar.`;
+  return distractorProblem(state.draft);
 }
 
 export function afterSaveSuccess(state: EditorState, saved: Resource): EditorState {

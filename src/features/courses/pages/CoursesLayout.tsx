@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { ApiError, errorMessage } from '../../../shared/api/httpClient';
 import type { Course } from '../../../shared/types/courses';
-import { createCourse, listCourses, updateCourse } from '../api/coursesApi';
+import { createCourse, deleteCourse, listCourses, updateCourse } from '../api/coursesApi';
 import type { CourseRequest } from '../model/courseForm';
 import '../courses.css';
 
@@ -19,6 +19,7 @@ interface CoursesLayoutProps {
 export interface CoursesContext extends CoursesLayoutProps {
   courses: Course[];
   saveCourse: (course: CourseRequest, courseId?: string) => Promise<Course>;
+  removeCourse: (courseId: string) => Promise<void>;
 }
 
 export function CoursesLayout({ token, onSessionExpired }: CoursesLayoutProps) {
@@ -59,8 +60,20 @@ export function CoursesLayout({ token, onSessionExpired }: CoursesLayoutProps) {
     }
   }
 
+  async function removeCourse(courseId: string) {
+    try {
+      await deleteCourse(token, courseId);
+      setState((current) => current.status === 'ready'
+        ? { ...current, courses: current.courses.filter(({ id }) => id !== courseId) }
+        : current);
+    } catch (cause) {
+      if (cause instanceof ApiError && cause.status === 401) onSessionExpired(token);
+      throw cause;
+    }
+  }
+
   if (state.status === 'ready') {
-    return <Outlet context={{ courses: state.courses, saveCourse, token, onSessionExpired } satisfies CoursesContext} />;
+    return <Outlet context={{ courses: state.courses, saveCourse, removeCourse, token, onSessionExpired } satisfies CoursesContext} />;
   }
 
   return (

@@ -13,3 +13,7 @@ export function createCourse(token: string, course: CourseRequest) {
 export function updateCourse(token: string, courseId: string, course: CourseRequest) {
   return request<Course>('/courses/' + encodeURIComponent(courseId), 'PUT', course, token);
 }
+
+export function deleteCourse(token: string, courseId: string) {
+  return request<void>('/courses/' + encodeURIComponent(courseId), 'DELETE', undefined, token);
+}

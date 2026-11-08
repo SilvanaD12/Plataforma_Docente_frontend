@@ -32,6 +32,11 @@ describe('editor de un recurso', () => {
     expect(html).toContain('Respuesta correcta');
   });
 
+  it('muestra el estado de revisión del recurso', () => {
+    expect(render(resource())).toContain('Pendiente de revisión');
+    expect(render(resource({ status: 'aprobado', approvalBlockers: [] }))).toContain('Aprobado');
+  });
+
   it('muestra los bloqueos que informa el servidor y no ofrece aprobar sin cambios', () => {
     const html = render(resource());
     expect(html).toContain('Decide el distractor pendiente para poder aprobar.');

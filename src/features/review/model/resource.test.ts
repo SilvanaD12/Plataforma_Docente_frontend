@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  reviewStatusLabel,
   VERIFICATION_LABELS,
   verificationAction,
   verificationLabel,
@@ -20,6 +21,14 @@ function verification(overrides: Partial<VerificationResult> = {}): Verification
     ...overrides,
   };
 }
+
+describe('estado de revisión', () => {
+  it('muestra en español el estado de revisión del recurso', () => {
+    expect(reviewStatusLabel('pendiente')).toBe('Pendiente de revisión');
+    expect(reviewStatusLabel('aprobado')).toBe('Aprobado');
+    expect(reviewStatusLabel('descartado')).toBe('Descartado');
+  });
+});
 
 describe('estado de verificación', () => {
   it('muestra en español los tres estados técnicos del contrato', () => {

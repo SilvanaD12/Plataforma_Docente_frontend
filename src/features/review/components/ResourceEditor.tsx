@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import type { DistractorDecision, Resource } from '../model/resource';
+import { reviewStatusLabel, type DistractorDecision, type Resource } from '../model/resource';
 import {
   afterSaveFailure,
   afterSaveSuccess,
@@ -56,6 +56,7 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry }: Resource
 
   return (
     <article className="card stack">
+      <p className="overline">{reviewStatusLabel(saved.status)}</p>
       <VerificationBadge
         verification={saved.verification}
         retrying={busy}

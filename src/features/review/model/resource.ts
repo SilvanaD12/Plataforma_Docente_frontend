@@ -100,6 +100,16 @@ export interface Resource {
   reviewReset?: boolean | null;
 }
 
+const REVIEW_STATUS_LABELS: Record<ReviewStatus, string> = {
+  pendiente: 'Pendiente de revisión',
+  aprobado: 'Aprobado',
+  descartado: 'Descartado',
+};
+
+export function reviewStatusLabel(status: ReviewStatus): string {
+  return REVIEW_STATUS_LABELS[status];
+}
+
 export const VERIFICATION_LABELS: Record<VerificationStatus, string> = {
   current: 'Vigente',
   insufficient: 'Insuficiente',

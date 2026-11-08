@@ -6,26 +6,10 @@ import { ResourceEditor } from '../components/ResourceEditor';
 import type { Resource } from '../model/resource';
 import { listFailed, listLoaded, listMessage, replaceResource, type ReviewListState } from '../model/reviewList';
 
-/**
- * Mientras CC-01 no agregue la sesión al contexto de la unidad, `token` y `onSessionExpired` pueden faltar.
- * Cuando estén en `UnitContext`, este tipo se reemplaza por `UnitContext`.
- */
-type UnitSessionContext = UnitContext & { token?: string; onSessionExpired?: (token: string) => void };
-
 /** Pestaña Revisión de la unidad. Lee la unidad y la sesión del contexto de `UnitLayout`. */
 export function ReviewPage() {
-  const { unit, token, onSessionExpired } = useOutletContext<UnitSessionContext>();
-  if (!token) return <ReviewSessionMissing />;
-  return <ReviewPageContent key={unit.id} token={token} unitId={unit.id} onSessionExpired={onSessionExpired ?? (() => {})} />;
-}
-
-export function ReviewSessionMissing() {
-  return (
-    <section className="card stack">
-      <h2 className="h2">Revisión</h2>
-      <p className="alert alert--warn" role="alert">No se encontró la sesión para cargar la revisión. Vuelve a entrar.</p>
-    </section>
-  );
+  const { unit, token, onSessionExpired } = useOutletContext<UnitContext>();
+  return <ReviewPageContent key={unit.id} token={token} unitId={unit.id} onSessionExpired={onSessionExpired} />;
 }
 
 interface ReviewPageContentProps {

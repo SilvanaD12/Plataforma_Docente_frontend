@@ -10,6 +10,11 @@ export interface EditorState {
   error: string | null;
   /** El recurso cambió en otra pestaña: hay que recargar antes de volver a guardar (REV-C14). */
   conflict: boolean;
+  /**
+   * Hay una solicitud en curso (guardar, aprobar, reintentar o recargar). Mientras tanto no se edita: la respuesta
+   * reemplaza el borrador y lo escrito en ese momento se perdería.
+   */
+  pending: boolean;
 }
 
 export const CONFLICT_MESSAGE =
@@ -18,11 +23,27 @@ export const RESET_NOTICE =
   'El recurso estaba aprobado y cambió su contenido: volvió a revisión y necesita una nueva aprobación.';
 
 export function startEditing(resource: Resource): EditorState {
-  return { saved: resource, draft: resource, notice: null, error: null, conflict: false };
+  return { saved: resource, draft: resource, notice: null, error: null, conflict: false, pending: false };
 }
 
+export function startRequest(state: EditorState): EditorState {
+  return { ...state, pending: true };
+}
+
+export function canEdit(state: EditorState): boolean {
+  return !state.pending;
+}
+
+/**
+ * El editor es de texto plano: si el cuerpo cambia, el HTML con formato guardado ya no corresponde y no se envía, para
+ * que el servidor y los exportadores usen el cuerpo nuevo. Si el docente vuelve al texto guardado, recupera el formato.
+ */
 export function editDraft(state: EditorState, changes: Partial<Pick<Resource, 'title' | 'body'>>): EditorState {
-  return { ...state, draft: { ...state.draft, ...changes, edited: true } };
+  if (!canEdit(state)) return state;
+  const draft: Resource = { ...state.draft, ...changes, edited: true };
+  if (draft.body === state.saved.body) draft.bodyHtml = state.saved.bodyHtml;
+  else delete draft.bodyHtml;
+  return { ...state, draft };
 }
 
 export function editOption(
@@ -30,6 +51,7 @@ export function editOption(
   optionId: string,
   changes: { text?: string; decision?: DistractorDecision },
 ): EditorState {
+  if (!canEdit(state)) return state;
   const options = state.draft.options?.map((option) => {
     if (option.id !== optionId) return option;
     const textChanged = changes.text !== undefined && changes.text !== option.text;
@@ -48,7 +70,7 @@ export function isDirty(state: EditorState): boolean {
 
 /** Mientras haya un conflicto de versión no se vuelve a guardar: primero hay que recargar. */
 export function canSave(state: EditorState): boolean {
-  return !state.conflict;
+  return !state.conflict && !state.pending;
 }
 
 /** Mínimo de distractores aceptados para aprobar; es el mismo que exige el servidor (`MIN_ACCEPTED_DISTRACTORS`). */
@@ -80,7 +102,7 @@ export function distractorProblem(resource: Resource): string | null {
  * guardar la versión editada; sin cambios, se usan los bloqueos que él ya informó.
  */
 export function canApprove(state: EditorState): boolean {
-  if (state.conflict || distractorProblem(state.draft) !== null) return false;
+  if (state.conflict || state.pending || distractorProblem(state.draft) !== null) return false;
   return isDirty(state) || state.saved.approvalBlockers.length === 0;
 }
 
@@ -90,14 +112,14 @@ export function approvalHint(state: EditorState): string | null {
 }
 
 export function afterSaveSuccess(state: EditorState, saved: Resource): EditorState {
-  return { saved, draft: saved, notice: saved.reviewReset ? RESET_NOTICE : null, error: null, conflict: false };
+  return { saved, draft: saved, notice: saved.reviewReset ? RESET_NOTICE : null, error: null, conflict: false, pending: false };
 }
 
 /** Un error al guardar nunca descarta el borrador del docente. */
 export function afterSaveFailure(state: EditorState, error: unknown): EditorState {
-  if (isVersionConflict(error)) return { ...state, notice: null, error: CONFLICT_MESSAGE, conflict: true };
+  if (isVersionConflict(error)) return { ...state, notice: null, error: CONFLICT_MESSAGE, conflict: true, pending: false };
   const message = error instanceof ApiError ? error.message : errorMessage(error);
-  return { ...state, notice: null, error: message, conflict: false };
+  return { ...state, notice: null, error: message, conflict: false, pending: false };
 }
 
 export function reloadLatest(_state: EditorState, latest: Resource): EditorState {

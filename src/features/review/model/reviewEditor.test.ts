@@ -8,6 +8,7 @@ import {
   afterSaveSuccess,
   approvalHint,
   canApprove,
+  canEdit,
   canSave,
   distractorProblem,
   editDraft,
@@ -15,8 +16,10 @@ import {
   isDirty,
   reloadLatest,
   startEditing,
+  startRequest,
   withStatus,
 } from './reviewEditor';
+import { reviewBody } from '../api/reviewApi';
 
 function resource(overrides: Partial<Resource> = {}): Resource {
   return {
@@ -164,5 +167,49 @@ describe('resultado de guardar', () => {
     expect(state.draft).toEqual(state.saved);
     expect(state.saved).toMatchObject({ body: 'Versión de la otra pestaña.', version: 5 });
     expect(state).toMatchObject({ conflict: false, error: null });
+  });
+});
+
+describe('mientras una solicitud está en curso', () => {
+  it('no se edita ni se vuelve a guardar o aprobar hasta que responda el servidor', () => {
+    const state = startRequest(editDraft(startEditing(resource()), { title: 'Antes de guardar' }));
+    expect(state.pending).toBe(true);
+    expect(canEdit(state)).toBe(false);
+    expect(canSave(state)).toBe(false);
+    expect(canApprove({ ...state, draft: { ...state.draft, options: null } })).toBe(false);
+  });
+
+  it('lo que se intente escribir durante la solicitud no cambia el borrador', () => {
+    const state = startRequest(editDraft(startEditing(resource()), { title: 'Antes de guardar' }));
+    expect(editDraft(state, { title: 'Escrito durante el guardado' })).toBe(state);
+    expect(editOption(state, 'b', { decision: 'aceptado' })).toBe(state);
+  });
+
+  it('al responder, bien o mal, se vuelve a poder editar', () => {
+    const pending = startRequest(editDraft(startEditing(resource()), { title: 'Otro' }));
+    expect(canEdit(afterSaveSuccess(pending, resource({ title: 'Otro', version: 3 })))).toBe(true);
+    expect(canEdit(afterSaveFailure(pending, new Error('red')))).toBe(true);
+    expect(canEdit(reloadLatest(pending, resource({ version: 5 })))).toBe(true);
+  });
+});
+
+describe('texto con formato (bodyHtml)', () => {
+  const formatted = () => resource({ bodyHtml: '<p><strong>¿Qué protocolo</strong> confirma la entrega?</p>' });
+
+  it('al cambiar el cuerpo no se envía el HTML viejo, para que el servidor use el cuerpo nuevo', () => {
+    const state = editDraft(startEditing(formatted()), { body: 'Nuevo enunciado.' });
+    expect(state.draft.bodyHtml).toBeUndefined();
+    expect(reviewBody(state.draft)).not.toHaveProperty('bodyHtml');
+  });
+
+  it('si no cambia el cuerpo, se conserva el formato', () => {
+    const state = editDraft(startEditing(formatted()), { title: 'Otro título' });
+    expect(reviewBody(state.draft).bodyHtml).toBe('<p><strong>¿Qué protocolo</strong> confirma la entrega?</p>');
+  });
+
+  it('si el docente vuelve al texto original, recupera el formato guardado', () => {
+    const changed = editDraft(startEditing(formatted()), { body: 'Nuevo enunciado.' });
+    const reverted = editDraft(changed, { body: '¿Qué protocolo confirma la entrega?' });
+    expect(reverted.draft.bodyHtml).toBe(formatted().bodyHtml);
   });
 });

@@ -32,6 +32,11 @@ describe('editor de un recurso', () => {
     expect(html).toContain('Respuesta correcta');
   });
 
+  it('sin una solicitud en curso, los campos se pueden editar', () => {
+    const html = render(resource());
+    expect(html).not.toMatch(/<(input|textarea|select)[^>]*disabled=""/);
+  });
+
   it('muestra el estado de revisión del recurso', () => {
     expect(render(resource())).toContain('Pendiente de revisión');
     expect(render(resource({ status: 'aprobado', approvalBlockers: [] }))).toContain('Aprobado');

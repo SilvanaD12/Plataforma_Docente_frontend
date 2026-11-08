@@ -5,12 +5,14 @@ import {
   afterSaveSuccess,
   approvalHint,
   canApprove,
+  canEdit,
   canSave,
   editDraft,
   editOption,
   isDirty,
   reloadLatest,
   startEditing,
+  startRequest,
   withStatus,
 } from '../model/reviewEditor';
 import { VerificationBadge } from './VerificationBadge';
@@ -35,15 +37,15 @@ const DECISIONS: { value: DistractorDecision; label: string }[] = [
  */
 export function ResourceEditor({ resource, onSave, onReload, onRetry }: ResourceEditorProps) {
   const [state, setState] = useState(() => startEditing(resource));
-  const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
   const { draft, saved } = state;
+  const locked = !canEdit(state);
   const fieldId = (name: string) => `${saved.id}-${name}`;
 
   async function run(action: () => Promise<Resource>, onSuccess = afterSaveSuccess) {
     if (inFlight.current) return;
     inFlight.current = true;
-    setBusy(true);
+    setState(startRequest);
     try {
       const result = await action();
       setState((current) => onSuccess(current, result));
@@ -51,7 +53,6 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry }: Resource
       setState((current) => afterSaveFailure(current, error));
     } finally {
       inFlight.current = false;
-      setBusy(false);
     }
   }
 
@@ -60,7 +61,7 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry }: Resource
       <p className="overline">{reviewStatusLabel(saved.status)}</p>
       <VerificationBadge
         verification={saved.verification}
-        retrying={busy}
+        retrying={state.pending}
         onRetry={() => run(() => onRetry(saved))}
       />
 
@@ -70,6 +71,7 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry }: Resource
           id={fieldId('title')}
           className="input"
           value={draft.title}
+          disabled={locked}
           onChange={(event) => setState((current) => editDraft(current, { title: event.target.value }))}
         />
       </div>
@@ -80,6 +82,7 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry }: Resource
           className="input"
           rows={5}
           value={draft.body}
+          disabled={locked}
           onChange={(event) => setState((current) => editDraft(current, { body: event.target.value }))}
         />
       </div>
@@ -91,6 +94,7 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry }: Resource
             className="input"
             aria-label={option.isCorrect ? 'Texto de la respuesta correcta' : 'Texto del distractor'}
             value={option.text}
+            disabled={locked}
             onChange={(event) => setState((current) => editOption(current, option.id, { text: event.target.value }))}
           />
           {!option.isCorrect && (
@@ -98,6 +102,7 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry }: Resource
               className="input"
               aria-label="Decisión sobre el distractor"
               value={option.decision}
+              disabled={locked}
               onChange={(event) => setState((current) =>
                 editOption(current, option.id, { decision: event.target.value as DistractorDecision }))}
             >
@@ -119,16 +124,16 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry }: Resource
 
       <div className="stack">
         {state.conflict ? (
-          <button type="button" className="btn btn--primary" disabled={busy} onClick={() => run(onReload, reloadLatest)}>
+          <button type="button" className="btn btn--primary" disabled={state.pending} onClick={() => run(onReload, reloadLatest)}>
             Recargar el recurso
           </button>
         ) : (
           <>
-            <button type="button" className="btn" disabled={busy || !canSave(state) || !isDirty(state)}
+            <button type="button" className="btn" disabled={!canSave(state) || !isDirty(state)}
               onClick={() => run(() => onSave(draft))}>
               Guardar cambios
             </button>
-            <button type="button" className="btn btn--primary" disabled={busy || !canApprove(state)}
+            <button type="button" className="btn btn--primary" disabled={!canApprove(state)}
               onClick={() => run(() => onSave(withStatus(draft, 'aprobado')))}>
               Aprobar
             </button>

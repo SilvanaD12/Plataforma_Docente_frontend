@@ -6,6 +6,10 @@ import { CourseFormPage } from '../features/courses/pages/CourseFormPage';
 import { CourseDetailPage } from '../features/courses/pages/CourseDetailPage';
 import { CourseListPage } from '../features/courses/pages/CourseListPage';
 import { CoursesLayout } from '../features/courses/pages/CoursesLayout';
+import { ExportPage } from '../features/export/pages/ExportPage';
+import { GenerationPage } from '../features/generation/pages/GenerationPage';
+import { MaterialPage } from '../features/materials/pages/MaterialPage';
+import { ReviewPage } from '../features/review/pages/ReviewPage';
 import { UnitLayout } from '../features/units/pages/UnitLayout';
 import { UnitOverviewPage } from '../features/units/pages/UnitOverviewPage';
 import { TeacherWorkspace } from './TeacherWorkspace';
@@ -42,6 +46,10 @@ export function App() {
           <Route path=":courseId/edit" element={<CourseFormPage />} />
           <Route path=":courseId/units/:unitId" element={<UnitLayout />}>
             <Route index element={<UnitOverviewPage />} />
+            <Route path="material" element={<MaterialPage />} />
+            <Route path="generation" element={<GenerationPage />} />
+            <Route path="review" element={<ReviewPage />} />
+            <Route path="export" element={<ExportPage />} />
           </Route>
         </Route>
       </Route>

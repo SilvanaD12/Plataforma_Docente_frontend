@@ -1,0 +1,11 @@
+.unit-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.unit-tab[aria-current='page'] {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent);
+  color: var(--color-accent-dark);
+}

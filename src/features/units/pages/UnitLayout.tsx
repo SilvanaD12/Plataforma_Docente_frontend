@@ -1,6 +1,15 @@
-import { Link, Outlet, useOutletContext, useParams } from 'react-router-dom';
+import { Link, NavLink, Outlet, useOutletContext, useParams } from 'react-router-dom';
 import type { UnitContext } from '../../../shared/types/courses';
 import type { CoursesContext } from '../../courses/pages/CoursesLayout';
+import '../unitNavigation.css';
+
+const tabs = [
+  { path: '.', label: 'Resumen' },
+  { path: 'material', label: 'Material' },
+  { path: 'generation', label: 'Generación' },
+  { path: 'review', label: 'Revisión' },
+  { path: 'export', label: 'Exportación' },
+];
 
 export function UnitLayout() {
   const { courseId, unitId } = useParams();
@@ -18,5 +27,21 @@ export function UnitLayout() {
   }
 
   const context: UnitContext = { course, unit };
-  return <Outlet context={context} />;
+  return (
+    <div className="stack stack--loose">
+      <nav className="course-breadcrumb" aria-label="Ruta de la unidad">
+        <Link to="/courses">Mis cursos</Link>
+        <span aria-hidden="true">/</span>
+        <Link to={'/courses/' + encodeURIComponent(course.id)}>{course.name}</Link>
+      </nav>
+      <header className="stack course-heading">
+        <p className="overline">Unidad {unit.number}</p>
+        <h1>{unit.title}</h1>
+      </header>
+      <nav className="unit-tabs" aria-label="Secciones de la unidad">
+        {tabs.map(({ path, label }) => <NavLink key={path} className="btn unit-tab" to={path} end>{label}</NavLink>)}
+      </nav>
+      <Outlet context={context} />
+    </div>
+  );
 }

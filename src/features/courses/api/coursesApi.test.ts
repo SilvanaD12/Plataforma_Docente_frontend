@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Course } from '../../../shared/types/courses';
-import { createCourse, listCourses, updateCourse } from './coursesApi';
+import { createCourse, deleteCourse, listCourses, updateCourse } from './coursesApi';
 
 const newCourse = {
   code: 'RED-301', name: 'Redes', term: '2026-II', summary: '', learningGoal: '',
@@ -10,6 +10,17 @@ const newCourse = {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('API de cursos', () => {
+  it('elimina el curso con el token y acepta una respuesta 204 vacía', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(new Response(null, { status: 204 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(deleteCourse('token-docente', 'curso/1')).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/courses/curso%2F1', expect.objectContaining({
+      method: 'DELETE', body: undefined,
+    }));
+    expect(new Headers(fetchMock.mock.calls[0][1]?.headers).get('Authorization')).toBe('Bearer token-docente');
+  });
+
   it('carga los cursos y sus unidades con el token de la sesión', async () => {
     const courses: Course[] = [{
       id: 'curso-1',

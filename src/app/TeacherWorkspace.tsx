@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { NavLink, Outlet } from 'react-router-dom';
 import { signOut, type Session } from '../features/auth/api/authApi';
 import { ApiError, errorMessage } from '../shared/api/httpClient';
 
@@ -28,6 +29,9 @@ export function TeacherWorkspace({ session, onClose }: { session: Session; onClo
     <div className="app">
       <aside className="sidebar" aria-label="Cuenta docente">
         <p className="sidebar__brand">Plataforma Docente</p>
+        <nav aria-label="Navegación docente">
+          <NavLink className="nav-link" to="/courses">Mis cursos</NavLink>
+        </nav>
         <div className="sidebar__footer">
           <div className="sidebar__user"><strong>{session.name}</strong><span>{session.email}</span></div>
           <button className="sidebar__logout" type="button" disabled={pending} onClick={logout}>
@@ -36,9 +40,8 @@ export function TeacherWorkspace({ session, onClose }: { session: Session; onClo
         </div>
       </aside>
       <main className="workspace stack" id="contenido">
-        <h1>Tu espacio docente</h1>
-        <p className="muted">Sesión iniciada como <strong>{session.name}</strong>.</p>
         {error && <p className="alert alert--warn" role="alert">{error}</p>}
+        <Outlet />
       </main>
     </div>
   );

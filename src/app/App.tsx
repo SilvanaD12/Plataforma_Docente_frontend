@@ -2,6 +2,11 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthShell } from '../features/auth/components/AuthShell';
 import { useSession } from '../features/auth/hooks/useSession';
 import { AuthPage } from '../features/auth/pages/AuthPage';
+import { CourseDetailPage } from '../features/courses/pages/CourseDetailPage';
+import { CourseListPage } from '../features/courses/pages/CourseListPage';
+import { CoursesLayout } from '../features/courses/pages/CoursesLayout';
+import { UnitLayout } from '../features/units/pages/UnitLayout';
+import { UnitOverviewPage } from '../features/units/pages/UnitOverviewPage';
 import { TeacherWorkspace } from './TeacherWorkspace';
 
 export function App() {
@@ -26,10 +31,18 @@ export function App() {
 
   return (
     <Routes>
-      <Route path="/login" element={session ? <Navigate to="/inicio" replace /> : <AuthPage key="login" creating={false} onSession={openSession} />} />
-      <Route path="/registro" element={session ? <Navigate to="/inicio" replace /> : <AuthPage key="register" creating onSession={openSession} />} />
-      <Route path="/inicio" element={session ? <TeacherWorkspace session={session} onClose={closeSession} /> : <Navigate to="/login" replace />} />
-      <Route path="*" element={<Navigate to={session ? '/inicio' : '/login'} replace />} />
+      <Route path="/login" element={session ? <Navigate to="/courses" replace /> : <AuthPage key="login" creating={false} onSession={openSession} />} />
+      <Route path="/registro" element={session ? <Navigate to="/courses" replace /> : <AuthPage key="register" creating onSession={openSession} />} />
+      <Route element={session ? <TeacherWorkspace session={session} onClose={closeSession} /> : <Navigate to="/login" replace />}>
+        <Route path="/courses" element={session && <CoursesLayout key={session.token} token={session.token} onSessionExpired={closeSession} />}>
+          <Route index element={<CourseListPage />} />
+          <Route path=":courseId" element={<CourseDetailPage />} />
+          <Route path=":courseId/units/:unitId" element={<UnitLayout />}>
+            <Route index element={<UnitOverviewPage />} />
+          </Route>
+        </Route>
+      </Route>
+      <Route path="*" element={<Navigate to={session ? '/courses' : '/login'} replace />} />
     </Routes>
   );
 }

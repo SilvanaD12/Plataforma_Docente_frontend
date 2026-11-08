@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ApiError, errorMessage } from '../../../shared/api/httpClient';
 import { getProfile, type Session } from '../api/authApi';
 import { clearSessionToken, readSessionToken, saveSessionToken } from '../api/sessionStore';
@@ -37,10 +37,10 @@ export function useSession() {
     setSession(nextSession);
   }
 
-  function closeSession(token: string) {
+  const closeSession = useCallback((token: string) => {
     clearSessionToken(token);
     setSession((current) => current?.token === token ? null : current);
-  }
+  }, []);
 
   return { session, checking, restoreError, openSession, closeSession };
 }

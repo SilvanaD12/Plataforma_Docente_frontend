@@ -25,4 +25,6 @@ export interface Course {
 export interface UnitContext {
   course: Course;
   unit: Unit;
+  token: string;
+  onSessionExpired: (token: string) => void;
 }

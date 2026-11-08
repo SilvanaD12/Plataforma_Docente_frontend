@@ -1,9 +1,10 @@
 import { Link, Outlet, useOutletContext, useParams } from 'react-router-dom';
-import type { Course, UnitContext } from '../../../shared/types/courses';
+import type { UnitContext } from '../../../shared/types/courses';
+import type { CoursesContext } from '../../courses/pages/CoursesLayout';
 
 export function UnitLayout() {
   const { courseId, unitId } = useParams();
-  const courses = useOutletContext<Course[]>();
+  const { courses } = useOutletContext<CoursesContext>();
   const course = courses.find(({ id }) => id === courseId);
   const unit = course?.units.find(({ id }) => id === unitId);
 

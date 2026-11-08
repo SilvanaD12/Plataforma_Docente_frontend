@@ -1,9 +1,9 @@
 import { Link, useOutletContext, useParams } from 'react-router-dom';
-import type { Course } from '../../../shared/types/courses';
+import type { CoursesContext } from './CoursesLayout';
 
 export function CourseDetailPage() {
   const { courseId } = useParams();
-  const courses = useOutletContext<Course[]>();
+  const { courses } = useOutletContext<CoursesContext>();
   const course = courses.find(({ id }) => id === courseId);
 
   if (!course) {

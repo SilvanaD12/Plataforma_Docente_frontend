@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { ApiError, errorMessage } from '../../../shared/api/httpClient';
 import type { Course } from '../../../shared/types/courses';
-import { listCourses } from '../api/coursesApi';
+import { createCourse, listCourses } from '../api/coursesApi';
+import type { CourseRequest } from '../model/courseForm';
 import '../courses.css';
 
 type CoursesState =
@@ -13,6 +14,11 @@ type CoursesState =
 interface CoursesLayoutProps {
   token: string;
   onSessionExpired: (token: string) => void;
+}
+
+export interface CoursesContext {
+  courses: Course[];
+  saveNewCourse: (course: CourseRequest) => Promise<Course>;
 }
 
 export function CoursesLayout({ token, onSessionExpired }: CoursesLayoutProps) {
@@ -36,7 +42,22 @@ export function CoursesLayout({ token, onSessionExpired }: CoursesLayoutProps) {
     return () => { active = false; };
   }, [token, onSessionExpired, attempt]);
 
-  if (state.status === 'ready') return <Outlet context={state.courses} />;
+  async function saveNewCourse(course: CourseRequest) {
+    try {
+      const saved = await createCourse(token, course);
+      setState((current) => current.status === 'ready'
+        ? { status: 'ready', courses: [...current.courses, saved] }
+        : current);
+      return saved;
+    } catch (cause) {
+      if (cause instanceof ApiError && cause.status === 401) onSessionExpired(token);
+      throw cause;
+    }
+  }
+
+  if (state.status === 'ready') {
+    return <Outlet context={{ courses: state.courses, saveNewCourse } satisfies CoursesContext} />;
+  }
 
   return (
     <>

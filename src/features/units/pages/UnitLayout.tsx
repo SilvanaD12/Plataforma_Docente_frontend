@@ -13,7 +13,7 @@ const tabs = [
 
 export function UnitLayout() {
   const { courseId, unitId } = useParams();
-  const { courses } = useOutletContext<CoursesContext>();
+  const { courses, token, onSessionExpired } = useOutletContext<CoursesContext>();
   const course = courses.find(({ id }) => id === courseId);
   const unit = course?.units.find(({ id }) => id === unitId);
 
@@ -26,7 +26,7 @@ export function UnitLayout() {
     );
   }
 
-  const context: UnitContext = { course, unit };
+  const context: UnitContext = { course, unit, token, onSessionExpired };
   return (
     <div className="stack stack--loose">
       <nav className="course-breadcrumb" aria-label="Ruta de la unidad">

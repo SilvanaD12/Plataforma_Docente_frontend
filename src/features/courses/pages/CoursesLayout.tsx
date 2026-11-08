@@ -16,7 +16,7 @@ interface CoursesLayoutProps {
   onSessionExpired: (token: string) => void;
 }
 
-export interface CoursesContext {
+export interface CoursesContext extends CoursesLayoutProps {
   courses: Course[];
   saveCourse: (course: CourseRequest, courseId?: string) => Promise<Course>;
 }
@@ -60,7 +60,7 @@ export function CoursesLayout({ token, onSessionExpired }: CoursesLayoutProps) {
   }
 
   if (state.status === 'ready') {
-    return <Outlet context={{ courses: state.courses, saveCourse } satisfies CoursesContext} />;
+    return <Outlet context={{ courses: state.courses, saveCourse, token, onSessionExpired } satisfies CoursesContext} />;
   }
 
   return (

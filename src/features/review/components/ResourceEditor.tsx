@@ -35,6 +35,7 @@ import {
   structureSchema,
 } from '../model/structureEditor';
 import { afterMediaResult, canGenerateMedia, mediaView } from '../model/mediaView';
+import { canRegenerate, regenerationHint } from '../model/regenerationView';
 import { StructureEditor } from './StructureEditor';
 import { VerificationBadge } from './VerificationBadge';
 import '../review.css';
@@ -46,6 +47,11 @@ interface ResourceEditorProps {
   onRetry: (resource: Resource) => Promise<Resource>;
   /** «Generar de nuevo» la imagen o el audio invalidados (REV-C8). Sin ella no se ofrece el botón. */
   onGenerateMedia?: (resource: Resource) => Promise<Resource>;
+  /**
+   * «Regenerar» (REV-C12). Si termina bien, la revisión recarga la lista y vuelve a cargar este editor; si falla, el
+   * editor muestra el motivo y el recurso queda como estaba (REV-C13). Sin ella no se ofrece el botón.
+   */
+  onRegenerate?: (resource: Resource) => Promise<void>;
 }
 
 const DECISIONS: { value: DistractorDecision; label: string }[] = [
@@ -58,7 +64,7 @@ const DECISIONS: { value: DistractorDecision; label: string }[] = [
  * Edición y aprobación de un recurso. Las reglas de qué hacer con cada resultado (conflicto de versión, aprobación
  * bloqueada, vuelta a revisión) están en `model/reviewEditor`; aquí solo se usan.
  */
-export function ResourceEditor({ resource, onSave, onReload, onRetry, onGenerateMedia }: ResourceEditorProps) {
+export function ResourceEditor({ resource, onSave, onReload, onRetry, onGenerateMedia, onRegenerate }: ResourceEditorProps) {
   const [state, setState] = useState(() => startEditing(resource));
   const [reason, setReason] = useState<DiscardReason>('sin_sentido');
   const inFlight = useRef(false);
@@ -75,6 +81,20 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry, onGenerate
     try {
       const result = await action();
       setState((current) => onSuccess(current, result));
+    } catch (error) {
+      setState((current) => afterSaveFailure(current, error));
+    } finally {
+      inFlight.current = false;
+    }
+  }
+
+  async function regenerate(action: (current: Resource) => Promise<void>) {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setState(startRequest);
+    try {
+      await action(saved);
+      setState((current) => ({ ...current, pending: false }));
     } catch (error) {
       setState((current) => afterSaveFailure(current, error));
     } finally {
@@ -215,6 +235,14 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry, onGenerate
                   onClick={() => run(() => onSave(withStatus(draft, 'descartado', reason)))}>
                   Descartar
                 </button>
+              </div>
+            )}
+            {onRegenerate && saved.status !== 'descartado' && (
+              <div className="review-discard">
+                <button type="button" className="btn" disabled={!canRegenerate(state)} onClick={() => regenerate(onRegenerate)}>
+                  Regenerar
+                </button>
+                {regenerationHint(state) && <p className="muted">{regenerationHint(state)}</p>}
               </div>
             )}
           </>

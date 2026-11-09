@@ -55,6 +55,24 @@ export function regenerateMedia(token: string, resource: Resource) {
   return request<Resource>(resourcePath(resource) + '/media', 'POST', undefined, token);
 }
 
+export interface RegenerationResult {
+  previousResourceId: string;
+  /** El anterior pasó a Descartados con el motivo «regenerado»; false si cambió mientras tanto y quedan los dos. */
+  previousDiscarded: boolean;
+  newResourceIds: string[];
+  status: 'succeeded' | 'running';
+}
+
+/**
+ * Pide a Generación un recurso nuevo con los parámetros guardados (REV-C12). Si falla, el anterior queda igual y el
+ * error trae el motivo: 409 o 422 con el código de Generación, 502 REGENERATION_FAILED o 503 REGENERATION_UNAVAILABLE.
+ */
+export function regenerateResource(token: string, resource: Resource) {
+  return request<RegenerationResult>(
+    resourcePath(resource) + '/regenerations', 'POST', { expectedVersion: resource.version }, token,
+  );
+}
+
 export function isVersionConflict(error: unknown): boolean {
   return error instanceof ApiError && error.status === 409 && error.code === 'VERSION_CONFLICT';
 }

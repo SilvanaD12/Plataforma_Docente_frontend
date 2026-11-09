@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import type { UnitContext } from '../../../shared/types/courses';
-import { getResource, listResources, regenerateMedia, retryVerification, saveResource } from '../api/reviewApi';
+import {
+  getResource,
+  listResources,
+  regenerateMedia,
+  regenerateResource,
+  retryVerification,
+  saveResource,
+} from '../api/reviewApi';
 import { ResourceEditor } from '../components/ResourceEditor';
+import { regenerationNotice } from '../model/regenerationView';
 import type { Resource } from '../model/resource';
 import { listFailed, listLoaded, listMessage, replaceResource, type ReviewListState } from '../model/reviewList';
 
@@ -20,6 +28,9 @@ interface ReviewPageContentProps {
 
 export function ReviewPageContent({ token, unitId, onSessionExpired }: ReviewPageContentProps) {
   const [state, setState] = useState<ReviewListState>({ status: 'loading' });
+  const [notice, setNotice] = useState<string | null>(null);
+  // Cuántas veces se volvió a cargar el editor de cada recurso: solo el regenerado, para no perder otros borradores.
+  const [remounts, setRemounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     let active = true;
@@ -40,6 +51,18 @@ export function ReviewPageContent({ token, unitId, onSessionExpired }: ReviewPag
     return resource;
   }
 
+  /** REV-C12: si falla, el error vuelve al editor, que muestra el motivo y conserva el recurso (REV-C13). */
+  async function regenerate(current: Resource) {
+    const result = await regenerateResource(token, current);
+    setNotice(regenerationNotice(result));
+    try {
+      setState(listLoaded(await listResources(token, unitId)));
+      setRemounts((counts) => ({ ...counts, [current.id]: (counts[current.id] ?? 0) + 1 }));
+    } catch {
+      setNotice(regenerationNotice(result) + ' No se pudo actualizar la lista: vuelve a cargar la página.');
+    }
+  }
+
   const message = listMessage(state);
   return (
     <section className="stack">
@@ -49,14 +72,16 @@ export function ReviewPageContent({ token, unitId, onSessionExpired }: ReviewPag
           {message}
         </p>
       )}
+      {notice && <p className="alert" role="status">{notice}</p>}
       {state.status === 'ready' && state.resources.map((resource) => (
         <ResourceEditor
-          key={resource.id}
+          key={`${resource.id}:${remounts[resource.id] ?? 0}`}
           resource={resource}
           onSave={(draft) => track(saveResource(token, draft))}
           onReload={() => track(getResource(token, unitId, resource.id))}
           onRetry={(current) => track(retryVerification(token, current))}
           onGenerateMedia={(current) => track(regenerateMedia(token, current))}
+          onRegenerate={regenerate}
         />
       ))}
     </section>

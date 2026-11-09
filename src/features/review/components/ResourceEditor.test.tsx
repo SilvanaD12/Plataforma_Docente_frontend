@@ -115,3 +115,18 @@ describe('multimedia invalidada', () => {
     expect(html).toMatch(/<button[^>]*>Generar de nuevo<\/button>/);
   });
 });
+
+describe('regenerar el recurso', () => {
+  const regenerate = async () => {};
+  const renderWith = (value: Resource) => renderToStaticMarkup(
+    <ResourceEditor resource={value} onSave={noop} onReload={noop} onRetry={noop} onRegenerate={regenerate} />,
+  );
+
+  it('un recurso en revisión ofrece «Regenerar» (REV-C12)', () => {
+    expect(renderWith(resource())).toMatch(/<button(?![^>]*disabled="")[^>]*>Regenerar<\/button>/);
+  });
+
+  it('un recurso descartado no lo ofrece', () => {
+    expect(renderWith(resource({ status: 'descartado', discardReason: 'otro', approvalBlockers: [] }))).not.toContain('>Regenerar<');
+  });
+});

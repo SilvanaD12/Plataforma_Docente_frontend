@@ -77,7 +77,7 @@ interface StartErrorNoticeProps {
   onStartFresh: () => void;
 }
 
-function StartErrorNotice({ error, submitting, onRetry, onStartFresh }: StartErrorNoticeProps) {
+export function StartErrorNotice({ error, submitting, onRetry, onStartFresh }: StartErrorNoticeProps) {
   return (
     <div className="alert alert--warn" role="alert">
       <div className="stack generation-notice">

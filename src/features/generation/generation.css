@@ -159,7 +159,8 @@
 .generation-badge--rejected,
 .generation-badge--failed,
 .generation-badge--interrupted,
-.generation-badge--verification-pending {
+.generation-badge--verification-pending,
+.generation-badge--verification-insufficient {
   background: var(--color-warn-soft);
   border-color: var(--color-warn-soft);
   color: var(--color-ink);

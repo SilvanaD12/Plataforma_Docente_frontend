@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import {
   finishedStepCount, isTerminal, orderedSteps, requestLabel, reviewPath, stageLabel, stepLabel, verificationLabel,
-  type GenerationRequestStatus, type GenerationStep,
+  type GenerationRequestStatus, type GenerationStep, type VerificationStatus,
 } from '../model/generationRequest';
 import { typeName, type ResourceTypeInfo } from '../model/resourceTypes';
 import '../generation.css';
@@ -49,7 +49,8 @@ export function GenerationProgress({ request, resourceTypes, onStartNew }: Gener
 }
 
 function StepItem({ step, resourceTypes }: { step: GenerationStep; resourceTypes: ResourceTypeInfo[] }) {
-  const resources = step.resources?.length
+  // `resources` es opcional en el contrato; sin él solo se conocen los ids, no la verificación.
+  const resources: { id: string; title: string; verificationStatus: VerificationStatus | null }[] = step.resources?.length
     ? step.resources
     : step.resourceIds.map((id) => ({ id, title: 'Recurso ' + id, verificationStatus: null }));
 
@@ -65,19 +66,16 @@ function StepItem({ step, resourceTypes }: { step: GenerationStep; resourceTypes
       {step.error && <p className="alert alert--warn">{step.error.message}</p>}
       {resources.length > 0 && (
         <ul className="generation-list" aria-label="Recursos enviados a Revisión">
-          {resources.map((resource) => {
-            const verification = verificationLabel(resource.verificationStatus);
-            return (
-              <li key={resource.id}>
-                <Link to={reviewPath(resource.id)}>{resource.title}</Link>
-                {verification && (
-                  <span className={'generation-badge generation-badge--verification-' + resource.verificationStatus}>
-                    Verificación: {verification}
-                  </span>
-                )}
-              </li>
-            );
-          })}
+          {resources.map((resource) => (
+            <li key={resource.id}>
+              <Link to={reviewPath(resource.id)}>{resource.title}</Link>
+              {resource.verificationStatus && (
+                <span className={'generation-badge generation-badge--verification-' + resource.verificationStatus}>
+                  Verificación: {verificationLabel(resource.verificationStatus)}
+                </span>
+              )}
+            </li>
+          ))}
         </ul>
       )}
       {step.rejections.length > 0 && (

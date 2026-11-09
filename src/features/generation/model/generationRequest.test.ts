@@ -26,11 +26,10 @@ describe('Pedido de generación', () => {
     expect(stageLabel('evaluate')).toBe('Evaluar');
   });
 
-  it('muestra la verificación como vigente o pendiente y la omite mientras no exista', () => {
+  it('nombra la verificación con los mismos textos que Revisión', () => {
     expect(verificationLabel('current')).toBe('Vigente');
+    expect(verificationLabel('insufficient')).toBe('Insuficiente');
     expect(verificationLabel('pending')).toBe('Pendiente');
-    expect(verificationLabel(null)).toBeNull();
-    expect(verificationLabel(undefined)).toBeNull();
   });
 
   it('ordena los pasos por posición y cuenta los que ya terminaron', () => {

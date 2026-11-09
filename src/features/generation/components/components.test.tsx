@@ -7,6 +7,8 @@ import type { ResourceTypeInfo } from '../model/resourceTypes';
 import { FallbackNotices } from './FallbackNotices';
 import { GenerationForm } from './GenerationForm';
 import { GenerationProgress } from './GenerationProgress';
+import type { GenerationError } from '../model/generationErrors';
+import { StartErrorNotice } from '../pages/GenerationPage';
 
 const types: ResourceTypeInfo[] = [
   { id: 'pregunta_detonante', name: 'Pregunta detonante', singular: 'pregunta', count: ['pregunta', 'preguntas'], stage: 'engage', group: 'g', format: 'text', hasOptions: false },
@@ -94,6 +96,45 @@ describe('Progreso de la generación', () => {
     expect(html).toContain('Verificación: Pendiente');
     expect(html).toContain('Rechazado');
     expect(html).toContain('Menos de la mitad de las afirmaciones tiene respaldo.');
+  });
+
+  it('muestra la verificación insuficiente y la omite si solo se conocen los ids', () => {
+    const html = render(<GenerationProgress resourceTypes={types} request={generationRequest({
+      status: 'succeeded',
+      steps: [
+        step(0, { resourceIds: ['rec-1'], resources: [{ id: 'rec-1', title: 'Pregunta 1', verificationStatus: 'insufficient' }] }),
+        step(1, { stage: 'evaluate', resourceType: 'item_opcion_multiple', resourceIds: ['rec-2'] }),
+      ],
+    })} />);
+
+    expect(html).toContain('generation-badge--verification-insufficient');
+    expect(html).toContain('Verificación: Insuficiente');
+    expect(html).toContain('href="/review?resource=rec-2"');
+    expect(html.match(/Verificación:/g)).toHaveLength(1);
+  });
+});
+
+describe('Errores al iniciar la generación', () => {
+  const notice = (error: GenerationError) => render(
+    <StartErrorNotice error={error} submitting={false} onRetry={() => undefined} onStartFresh={() => undefined} />,
+  );
+
+  it('enlaza con Material solo cuando falta material procesado', () => {
+    const missing = notice({ kind: 'noMaterial', message: 'La unidad no tiene material procesado.' });
+    expect(missing).toContain('La unidad no tiene material procesado.');
+    expect(missing).toContain('href="/material"');
+
+    for (const kind of ['invalidOutcome', 'invalidSequence', 'unitNotFound', 'other'] as const) {
+      const html = notice({ kind, message: 'Mensaje del servidor.' });
+      expect(html).toContain('Mensaje del servidor.');
+      expect(html).not.toContain('Material');
+    }
+  });
+
+  it('ofrece un pedido nuevo con una clave reutilizada y reintentar ante un fallo de red', () => {
+    expect(notice({ kind: 'keyReused', message: 'x' })).toContain('Crear un pedido nuevo');
+    expect(notice({ kind: 'network', message: 'x' })).toContain('Reintentar');
+    expect(notice({ kind: 'tooManyActive', message: 'x' })).toContain('Espera a que termine');
   });
 
   it('muestra el motivo del fallo del pedido', () => {

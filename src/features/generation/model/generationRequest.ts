@@ -9,7 +9,8 @@ export type StepStatus = 'pending' | 'running' | 'succeeded' | 'rejected' | 'fai
 export type GenerationMode = 'individual' | 'sequence';
 export type RequestMode = GenerationMode | 'regeneration';
 export type RetrievalMode = 'hybrid' | 'bm25_fallback';
-export type VerificationStatus = 'current' | 'pending';
+/** Mismos valores que `verification.status` de REV-01. */
+export type VerificationStatus = 'current' | 'insufficient' | 'pending';
 export type Difficulty = 'basica' | 'intermedia' | 'avanzada';
 export type RejectionKind = 'grounding' | 'repetition' | 'structure' | 'distractor';
 
@@ -41,7 +42,7 @@ export interface Problem {
 export interface StepResource {
   id: string;
   title: string;
-  verificationStatus?: VerificationStatus | null;
+  verificationStatus: VerificationStatus;
 }
 
 export interface StepRejection {
@@ -165,11 +166,15 @@ export function stageLabel(stage: Stage) {
   return stageLabels[stage];
 }
 
-/** `null` mientras el servidor no guarde el bloque de verificación (T026). */
-export function verificationLabel(status: VerificationStatus | null | undefined) {
-  if (status === 'current') return 'Vigente';
-  if (status === 'pending') return 'Pendiente';
-  return null;
+// Mismos textos que Revisión (src/features/review), sin importar desde allí.
+const verificationLabels: Record<VerificationStatus, string> = {
+  current: 'Vigente',
+  insufficient: 'Insuficiente',
+  pending: 'Pendiente',
+};
+
+export function verificationLabel(status: VerificationStatus) {
+  return verificationLabels[status];
 }
 
 export function orderedSteps(steps: GenerationStep[]) {

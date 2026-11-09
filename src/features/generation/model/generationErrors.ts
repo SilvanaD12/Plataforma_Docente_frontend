@@ -1,6 +1,17 @@
 import { ApiError, errorMessage } from '../../../shared/api/httpClient';
 
-export type GenerationErrorKind = 'keyReused' | 'tooManyActive' | 'noMaterial' | 'notFound' | 'network' | 'other';
+export type GenerationErrorKind =
+  | 'keyReused'
+  | 'tooManyActive'
+  | 'noMaterial'
+  | 'invalidOutcome'
+  | 'invalidSequence'
+  | 'unitNotFound'
+  | 'requestNotFound'
+  /** 404 sin `code`: no se sabe si falta la unidad o el pedido. */
+  | 'notFound'
+  | 'network'
+  | 'other';
 
 export interface GenerationError {
   kind: GenerationErrorKind;
@@ -12,19 +23,28 @@ export function isSessionExpired(error: unknown) {
   return error instanceof ApiError && error.status === 401;
 }
 
-// TODO(GEN-01): distinguir por `error.code` cuando ApiError lo incluya (PR #4):
-// IDEMPOTENCY_KEY_REUSED, TOO_MANY_ACTIVE_REQUESTS, NO_PROCESSED_MATERIAL, UNIT_NOT_FOUND y
-// GENERATION_REQUEST_NOT_FOUND. Hoy un 400 también puede ser INVALID_OUTCOME, INVALID_SEQUENCE o
-// IDEMPOTENCY_KEY_REQUIRED; se muestra el message del servidor en todos los casos.
+const kindsByCode: Record<string, GenerationErrorKind> = {
+  IDEMPOTENCY_KEY_REUSED: 'keyReused',
+  TOO_MANY_ACTIVE_REQUESTS: 'tooManyActive',
+  NO_PROCESSED_MATERIAL: 'noMaterial',
+  INVALID_OUTCOME: 'invalidOutcome',
+  INVALID_SEQUENCE: 'invalidSequence',
+  UNIT_NOT_FOUND: 'unitNotFound',
+  GENERATION_REQUEST_NOT_FOUND: 'requestNotFound',
+};
+
+// Sin `code` solo se distinguen los estados inequívocos. Un 400 puede ser varias reglas de negocio,
+// así que no se trata como falta de material.
+const kindsByStatus: Record<number, GenerationErrorKind> = {
+  404: 'notFound',
+  409: 'keyReused',
+  429: 'tooManyActive',
+};
+
 export function generationErrorKind(error: unknown): GenerationErrorKind {
   if (!(error instanceof ApiError)) return 'network';
-  switch (error.status) {
-    case 409: return 'keyReused';
-    case 429: return 'tooManyActive';
-    case 400: return 'noMaterial';
-    case 404: return 'notFound';
-    default: return 'other';
-  }
+  if (error.code) return kindsByCode[error.code] ?? 'other';
+  return kindsByStatus[error.status] ?? 'other';
 }
 
 export function generationError(error: unknown): GenerationError {

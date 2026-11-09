@@ -33,8 +33,8 @@ export function FallbackNotices({ retrievalMode, steps, resourceTypes }: Fallbac
           <div className="stack generation-notice">
             <p>
               <strong>Redacción sin IA.</strong>{' '}
-              El modelo de IA no respondió y estos pasos los redactó el generador por reglas.
-              Revísalos con más atención:
+              En estos pasos la IA no respondió o su redacción no tenía respaldo en el material, y el recurso lo
+              redactó el generador por reglas. Revísalos con más atención:
             </p>
             <ul className="generation-list">
               {drafted.map((step) => (

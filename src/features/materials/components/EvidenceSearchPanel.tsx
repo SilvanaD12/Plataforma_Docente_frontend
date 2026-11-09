@@ -31,64 +31,77 @@ export function EvidenceSearchPanel({ onSearch }: EvidenceSearchPanelProps) {
   };
 
   return (
-    <div className="mat-search-panel">
-      <h3>Búsqueda de evidencia en la unidad</h3>
-      <form onSubmit={handleSearch} className="mat-search-form">
-        <div className="mat-search-inputs">
+    <section className="card" aria-labelledby="evidence-search-title">
+      <h3 className="title" id="evidence-search-title">Búsqueda de evidencia en la unidad</h3>
+      <p className="field__hint">
+        Comprueba la relevancia de los fragmentos indexados antes de la generación 5E.
+      </p>
+
+      {error && <p className="alert alert--warn" role="alert">{error}</p>}
+
+      <form onSubmit={handleSearch} className="course-form-grid">
+        <label className="field" style={{ gridColumn: 'span 2' }}>
+          <span className="field__label">Términos de búsqueda</span>
           <input
+            className="input"
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Escribe términos de búsqueda (ej. protocolos de red)..."
+            placeholder="Ej. protocolos de capa de transporte"
             disabled={isSearching}
           />
-          <div className="mat-topk-control">
-            <label htmlFor="topk-slider">Resultados ({topK}):</label>
-            <input
-              id="topk-slider"
-              type="range"
-              min={1}
-              max={50}
-              value={topK}
-              onChange={(e) => setTopK(Number(e.target.value))}
-              disabled={isSearching}
-            />
-          </div>
-          <button type="submit" className="mat-btn mat-btn-primary" disabled={isSearching || !query.trim()}>
-            {isSearching ? 'Buscando...' : 'Buscar'}
+        </label>
+
+        <label className="field">
+          <span className="field__label">Resultados ({topK})</span>
+          <input
+            className="input"
+            type="number"
+            min={1}
+            max={50}
+            value={topK}
+            onChange={(e) => setTopK(Number(e.target.value))}
+            disabled={isSearching}
+          />
+        </label>
+
+        <div style={{ alignSelf: 'end' }}>
+          <button
+            type="submit"
+            className="btn btn--primary"
+            disabled={isSearching || !query.trim()}
+            aria-busy={isSearching}
+          >
+            {isSearching ? 'Consultando…' : 'Buscar evidencias'}
           </button>
         </div>
       </form>
 
-      {error && <div className="mat-form-error">{error}</div>}
-
       {searched && (
-        <div className="mat-search-results">
-          <h4>Evidencias encontradas ({results.length})</h4>
+        <div className="stack" style={{ marginTop: 'var(--space-4)' }}>
+          <h4 className="field__label">Resultados encontrados ({results.length})</h4>
           {results.length === 0 ? (
-            <p className="mat-empty">No se encontraron fragmentos relevantes para los términos ingresados.</p>
+            <p className="muted">No se encontraron evidencias coincidentes con los términos ingresados.</p>
           ) : (
             results.map((item) => (
-              <div key={item.id} className="mat-evidence-result-card">
-                <div className="mat-evidence-header">
-                  <span className="mat-evidence-loc">{item.location || 'Documento'}</span>
-                  <div className="mat-evidence-badges">
+              <article key={item.id} className="mat-chunk-card">
+                <div className="mat-chunk-meta">
+                  <strong>{item.location || 'Documento'}</strong>
+                  <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
                     {item.retrievalMode && (
-                      <span className={`mat-mode-badge mat-mode-${item.retrievalMode}`}>
+                      <span className={`mat-badge mat-badge--${item.retrievalMode === 'hybrid' ? 'procesado' : 'registrado'}`}>
                         {item.retrievalMode === 'hybrid' ? 'Híbrido (RRF)' : 'Léxico (BM25)'}
                       </span>
                     )}
-                    <span className="mat-relevance-score">
-                      Relevancia: {(item.relevance * 100).toFixed(1)}%
-                    </span>
+                    <span>Relevancia: {(item.relevance * 100).toFixed(1)}%</span>
                   </div>
                 </div>
-                <p className="mat-evidence-text">{item.text}</p>
-              </div>
+                <p>{item.text}</p>
+              </article>
             ))
           )}
         </div>
       )}
-    </div>
+    </section>
   );
 }

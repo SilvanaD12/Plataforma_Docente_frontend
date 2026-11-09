@@ -23,60 +23,55 @@ export function DocumentCard({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  const isError = document.status === 'error';
+
   return (
-    <div className={`mat-document-card mat-status-${document.status}`}>
-      <div className="mat-card-header">
-        <div className="mat-file-info">
-          <span className="mat-kind-badge">{document.kind.toUpperCase()}</span>
-          <h4 className="mat-file-name" title={document.fileName}>
-            {document.fileName}
-          </h4>
+    <article className={`mat-item ${isError ? 'mat-item--error' : ''}`}>
+      <div className="mat-item__head">
+        <div>
+          <span className="overline">{document.kind}</span>
+          <h4 className="mat-item__title">{document.fileName}</h4>
         </div>
-        <span className={`mat-status-tag mat-tag-${document.status}`}>
+        <span className={`mat-badge mat-badge--${document.status}`}>
           {document.status}
         </span>
       </div>
 
-      <div className="mat-card-body">
-        <p className="mat-metadata">
-          <span><strong>Tamaño:</strong> {formatSize(document.sizeBytes)}</span>
-          <span><strong>Tipo:</strong> {document.documentType}</span>
-          {document.pageCount ? <span><strong>Páginas:</strong> {document.pageCount}</span> : null}
-          {document.fragmentCount > 0 ? (
-            <span><strong>Fragmentos:</strong> {document.fragmentCount} (~220 palabras)</span>
-          ) : null}
-        </p>
-
-        {/* Motivo visible del error en caso de fallo */}
-        {document.status === 'error' && document.errorMessage && (
-          <div className="mat-error-banner" role="alert">
-            <strong>Motivo del fallo:</strong> {document.errorMessage}
-          </div>
-        )}
-
+      <div className="mat-meta">
+        <span><strong>Tamaño:</strong> {formatSize(document.sizeBytes)}</span>
+        <span><strong>Tipo:</strong> {document.documentType}</span>
+        {document.pageCount ? <span><strong>Páginas:</strong> {document.pageCount}</span> : null}
+        {document.fragmentCount > 0 ? (
+          <span><strong>Fragmentos:</strong> {document.fragmentCount}</span>
+        ) : null}
         {document.origin && (
-          <div className="mat-origin-badge">
-            Fuente abierta: <em>{document.origin.topic}</em> ({document.origin.source})
-          </div>
+          <span className="muted">
+            Fuente abierta: <em>{document.origin.topic}</em>
+          </span>
         )}
       </div>
 
-      <div className="mat-card-actions">
+      {isError && document.errorMessage && (
+        <p className="alert alert--warn" role="alert">{document.errorMessage}</p>
+      )}
+
+      <div className="mat-actions">
         {document.status === 'registrado' && (
           <button
             type="button"
-            className="mat-btn mat-btn-primary"
+            className="btn btn--primary"
             onClick={() => onProcess(document.id)}
             disabled={isProcessing}
+            aria-busy={isProcessing}
           >
-            {isProcessing ? 'Procesando...' : 'Procesar material'}
+            {isProcessing ? 'Procesando…' : 'Procesar'}
           </button>
         )}
 
         {document.status === 'procesado' && (
           <button
             type="button"
-            className="mat-btn mat-btn-secondary"
+            className="btn"
             onClick={() => onViewChunks(document.id)}
           >
             Ver fragmentos ({document.fragmentCount})
@@ -85,7 +80,7 @@ export function DocumentCard({
 
         <button
           type="button"
-          className="mat-btn mat-btn-ghost"
+          className="btn"
           onClick={() => onDownload(document.id, document.fileName)}
         >
           Descargar
@@ -93,12 +88,12 @@ export function DocumentCard({
 
         <button
           type="button"
-          className="mat-btn mat-btn-danger-ghost"
+          className="btn"
           onClick={() => onDelete(document.id)}
         >
           Eliminar
         </button>
       </div>
-    </div>
+    </article>
   );
 }

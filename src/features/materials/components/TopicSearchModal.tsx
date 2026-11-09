@@ -28,44 +28,51 @@ export function TopicSearchModal({ isOpen, onClose, onImport }: TopicSearchModal
       setTopic('');
       onClose();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'No se pudo obtener contenido de la fuente abierta.');
+      setError(err instanceof Error ? err.message : 'No se pudo importar contenido.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="mat-modal-overlay">
-      <div className="mat-modal-content">
-        <div className="mat-modal-header">
-          <h3>Importar material desde fuente abierta</h3>
-          <button type="button" className="mat-close-btn" onClick={onClose} disabled={isLoading}>
+    <div className="mat-dialog-backdrop" role="dialog" aria-modal="true" aria-labelledby="modal-topic-title">
+      <div className="card mat-dialog stack">
+        <header className="mat-dialog__head">
+          <h2 className="h2" id="modal-topic-title">Importar de fuente abierta</h2>
+          <button
+            type="button"
+            className="mat-dialog__close"
+            onClick={onClose}
+            aria-label="Cerrar ventana"
+            disabled={isLoading}
+          >
             ×
           </button>
-        </div>
+        </header>
 
-        <form onSubmit={handleSubmit}>
-          <p className="mat-modal-desc">
-            Consulta artículos enciclopédicos con licencia libre (CC BY-SA 4.0) y los incorpora como
-            material procesado para la unidad.
-          </p>
+        <p className="field__hint">
+          Consulta artículos bajo licencia CC BY-SA 4.0 y agrégalos como material procesado a esta unidad.
+        </p>
 
-          <div className="mat-form-group">
-            <label htmlFor="topic-input">Tema o concepto:</label>
+        {error && <p className="alert alert--warn" role="alert">{error}</p>}
+
+        <form className="stack" onSubmit={handleSubmit}>
+          <label className="field">
+            <span className="field__label">Tema o concepto</span>
             <input
-              id="topic-input"
+              className="input"
               type="text"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              placeholder="Ej. Protocolo de control de transmisión"
+              placeholder="Ej. Arquitectura cliente-servidor"
               disabled={isLoading}
             />
-          </div>
+          </label>
 
-          <div className="mat-form-group">
-            <label htmlFor="max-results">Cantidad de artículos:</label>
+          <label className="field">
+            <span className="field__label">Cantidad de artículos</span>
             <select
-              id="max-results"
+              className="input"
               value={maxResults}
               onChange={(e) => setMaxResults(Number(e.target.value))}
               disabled={isLoading}
@@ -74,18 +81,21 @@ export function TopicSearchModal({ isOpen, onClose, onImport }: TopicSearchModal
               <option value={2}>2 artículos</option>
               <option value={3}>3 artículos</option>
             </select>
-          </div>
+          </label>
 
-          {error && <div className="mat-form-error">{error}</div>}
-
-          <div className="mat-modal-actions">
-            <button type="button" className="mat-btn mat-btn-ghost" onClick={onClose} disabled={isLoading}>
+          <footer className="mat-dialog__footer">
+            <button type="button" className="btn" onClick={onClose} disabled={isLoading}>
               Cancelar
             </button>
-            <button type="submit" className="mat-btn mat-btn-primary" disabled={isLoading}>
-              {isLoading ? 'Consultando...' : 'Buscar e importar'}
+            <button
+              type="submit"
+              className="btn btn--primary"
+              disabled={isLoading}
+              aria-busy={isLoading}
+            >
+              {isLoading ? 'Importando…' : 'Importar'}
             </button>
-          </div>
+          </footer>
         </form>
       </div>
     </div>

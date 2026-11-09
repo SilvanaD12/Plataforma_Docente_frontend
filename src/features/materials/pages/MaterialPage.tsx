@@ -3,7 +3,15 @@ import { useOutletContext } from 'react-router-dom';
 import type { UnitContext } from '../../../shared/types/courses';
 import { ApiError, errorMessage } from '../../../shared/api/httpClient';
 import { materialsApi } from '../api/materialsApi';
-import { DocumentItem, ChunkItem, UploadContextPayload } from '../model/types';
+import type { ChunkItem, UploadContextPayload } from '../model/types';
+import {
+  materialListFailed,
+  materialListLoaded,
+  materialListMessage,
+  removeDocument,
+  replaceDocument,
+  type MaterialListState,
+} from '../model/materialList';
 import { DocumentCard } from '../components/DocumentCard';
 import { MaterialUploadForm } from '../components/MaterialUploadForm';
 import { TopicSearchModal } from '../components/TopicSearchModal';
@@ -13,12 +21,20 @@ import '../materials.css';
 
 export function MaterialPage() {
   const { unit, token, onSessionExpired } = useOutletContext<UnitContext>();
+  return <MaterialPageContent key={unit.id} unit={unit} token={token} onSessionExpired={onSessionExpired} />;
+}
 
-  const [documents, setDocuments] = useState<DocumentItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export interface MaterialPageContentProps {
+  unit: UnitContext['unit'];
+  token: string;
+  onSessionExpired: (token: string) => void;
+}
+
+export function MaterialPageContent({ unit, token, onSessionExpired }: MaterialPageContentProps) {
+  const [listState, setListState] = useState<MaterialListState>({ status: 'loading' });
   const [isProcessingId, setIsProcessingId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [errorBanner, setErrorBanner] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Modales
   const [isTopicModalOpen, setIsTopicModalOpen] = useState(false);
@@ -29,25 +45,18 @@ export function MaterialPage() {
   const loadDocuments = useCallback(async () => {
     if (!token) return;
     try {
-      setIsLoading(true);
-      setErrorBanner(null);
+      setListState({ status: 'loading' });
+      setActionError(null);
       const allDocs = await materialsApi.listDocuments(token);
       const filtered = allDocs.filter((d) => d.unitId === unit.id);
-      setDocuments(filtered);
-    } catch (err: unknown) {
-      if (err instanceof ApiError) {
-        if (err.status === 401) {
-          onSessionExpired(token);
-          return;
-        }
-        if (err.status === 404) {
-          setErrorBanner('La unidad seleccionada no existe o no pertenece a tus cursos asignados.');
-          return;
-        }
+      setListState(materialListLoaded(filtered));
+    } catch (cause: unknown) {
+      const next = materialListFailed(cause);
+      if (next.status === 'expired') {
+        onSessionExpired(token);
+        return;
       }
-      setErrorBanner(errorMessage(err));
-    } finally {
-      setIsLoading(false);
+      setListState(next);
     }
   }, [token, unit.id, onSessionExpired]);
 
@@ -57,9 +66,10 @@ export function MaterialPage() {
 
   const handleUpload = async (file: File, context: UploadContextPayload) => {
     setIsUploading(true);
+    setActionError(null);
     try {
       const newDoc = await materialsApi.uploadDocument(file, context, token);
-      setDocuments((prev) => [newDoc, ...prev]);
+      setListState((current) => replaceDocument(current, newDoc));
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 401) {
         onSessionExpired(token);
@@ -73,15 +83,16 @@ export function MaterialPage() {
 
   const handleProcess = async (documentId: string) => {
     setIsProcessingId(documentId);
+    setActionError(null);
     try {
       const processed = await materialsApi.processDocument(documentId, token);
-      setDocuments((prev) => prev.map((d) => (d.id === documentId ? processed : d)));
+      setListState((current) => replaceDocument(current, processed));
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 401) {
         onSessionExpired(token);
         return;
       }
-      setErrorBanner(errorMessage(err));
+      setActionError(errorMessage(err));
     } finally {
       setIsProcessingId(null);
     }
@@ -89,15 +100,16 @@ export function MaterialPage() {
 
   const handleDelete = async (documentId: string) => {
     if (!window.confirm('¿Seguro que deseas eliminar este documento y sus fragmentos?')) return;
+    setActionError(null);
     try {
       await materialsApi.deleteDocument(documentId, token);
-      setDocuments((prev) => prev.filter((d) => d.id !== documentId));
+      setListState((current) => removeDocument(current, documentId));
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 401) {
         onSessionExpired(token);
         return;
       }
-      setErrorBanner(errorMessage(err));
+      setActionError(errorMessage(err));
     }
   };
 
@@ -109,7 +121,7 @@ export function MaterialPage() {
         onSessionExpired(token);
         return;
       }
-      setErrorBanner(errorMessage(err));
+      setActionError(errorMessage(err));
     }
   };
 
@@ -124,7 +136,7 @@ export function MaterialPage() {
         onSessionExpired(token);
         return;
       }
-      setErrorBanner(errorMessage(err));
+      setActionError(errorMessage(err));
     } finally {
       setIsLoadingChunks(false);
     }
@@ -133,7 +145,9 @@ export function MaterialPage() {
   const handleImportTopic = async (topic: string, maxResults: number) => {
     try {
       const imported = await materialsApi.importFromTopic(unit.id, topic, token, maxResults);
-      setDocuments((prev) => [...imported, ...prev]);
+      imported.forEach((doc) => {
+        setListState((current) => replaceDocument(current, doc));
+      });
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 401) {
         onSessionExpired(token);
@@ -154,49 +168,53 @@ export function MaterialPage() {
     }
   };
 
+  const message = materialListMessage(listState);
+
   return (
-    <div className="mat-container">
-      <div className="mat-header">
-        <div>
-          <h2>Materiales y Evidencias de la Unidad</h2>
-          <p className="mat-subtitle">
-            Carga y gestiona el material que fundamentará la generación de recursos didácticos 5E para {unit.title}.
-          </p>
-        </div>
-        <div className="mat-header-actions">
-          <button
-            type="button"
-            className="mat-btn mat-btn-secondary"
-            onClick={() => setIsTopicModalOpen(true)}
-          >
-            Importar de fuente abierta
-          </button>
-        </div>
+    <section className="stack">
+      <div className="mat-section-head">
+        <h2 className="h2">Material y Evidencia</h2>
+        <button
+          type="button"
+          className="btn"
+          onClick={() => setIsTopicModalOpen(true)}
+        >
+          Importar de fuente abierta
+        </button>
       </div>
 
-      {errorBanner && (
-        <div className="mat-error-banner" role="alert">
-          {errorBanner}
-        </div>
+      {message && (
+        <p
+          className={listState.status === 'error' ? 'alert alert--warn' : 'muted'}
+          role={listState.status === 'error' ? 'alert' : 'status'}
+        >
+          {message}
+        </p>
       )}
 
-      {/* Formulario de carga de material */}
+      {actionError && (
+        <p className="alert alert--warn" role="alert">
+          {actionError}
+        </p>
+      )}
+
       <MaterialUploadForm
         unitId={unit.id}
         onUpload={handleUpload}
         isUploading={isUploading}
       />
 
-      {/* Listado de documentos cargados */}
-      <section className="mat-documents-section">
-        <h3>Documentos registrados ({documents.length})</h3>
-        {isLoading ? (
-          <p className="mat-loading">Cargando materiales...</p>
-        ) : documents.length === 0 ? (
-          <p className="mat-empty">Aún no hay documentos registrados en esta unidad.</p>
-        ) : (
-          <div className="mat-documents-grid">
-            {documents.map((doc) => (
+      <section className="card" aria-labelledby="mat-list-title">
+        <h3 className="title" id="mat-list-title">Materiales registrados</h3>
+        {listState.status === 'loading' && (
+          <p className="muted" role="status">Cargando materiales…</p>
+        )}
+        {listState.status === 'ready' && listState.documents.length === 0 && (
+          <p className="muted">Esta unidad todavía no tiene materiales registrados.</p>
+        )}
+        {listState.status === 'ready' && listState.documents.length > 0 && (
+          <div className="mat-grid">
+            {listState.documents.map((doc) => (
               <DocumentCard
                 key={doc.id}
                 document={doc}
@@ -211,12 +229,10 @@ export function MaterialPage() {
         )}
       </section>
 
-      {/* Buscador de evidencia híbrida */}
       <EvidenceSearchPanel
         onSearch={handleSearchEvidence}
       />
 
-      {/* Modales */}
       <TopicSearchModal
         isOpen={isTopicModalOpen}
         onClose={() => setIsTopicModalOpen(false)}
@@ -229,6 +245,6 @@ export function MaterialPage() {
         chunks={activeChunks}
         isLoading={isLoadingChunks}
       />
-    </div>
+    </section>
   );
 }

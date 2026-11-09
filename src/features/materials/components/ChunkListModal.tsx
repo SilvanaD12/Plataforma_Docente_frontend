@@ -11,38 +11,46 @@ export function ChunkListModal({ isOpen, onClose, chunks, isLoading }: ChunkList
   if (!isOpen) return null;
 
   return (
-    <div className="mat-modal-overlay">
-      <div className="mat-modal-content mat-modal-lg">
-        <div className="mat-modal-header">
-          <h3>Fragmentos de evidencia procesados</h3>
-          <button type="button" className="mat-close-btn" onClick={onClose}>
+    <div className="mat-dialog-backdrop" role="dialog" aria-modal="true" aria-labelledby="modal-chunks-title">
+      <div className="card mat-dialog mat-dialog--wide stack">
+        <header className="mat-dialog__head">
+          <div>
+            <span className="overline">Evidencia indexada</span>
+            <h2 className="h2" id="modal-chunks-title">Fragmentos extraídos</h2>
+          </div>
+          <button
+            type="button"
+            className="mat-dialog__close"
+            onClick={onClose}
+            aria-label="Cerrar ventana"
+          >
             ×
           </button>
-        </div>
+        </header>
 
-        <div className="mat-chunks-container">
+        <div className="mat-chunk-list">
           {isLoading ? (
-            <p className="mat-loading">Cargando fragmentos...</p>
+            <p className="muted" role="status">Cargando fragmentos…</p>
           ) : chunks.length === 0 ? (
-            <p className="mat-empty">No se encontraron fragmentos para este documento.</p>
+            <p className="muted">No hay fragmentos disponibles.</p>
           ) : (
             chunks.map((chunk) => (
-              <div key={chunk.id} className="mat-chunk-card">
+              <article key={chunk.id} className="mat-chunk-card">
                 <div className="mat-chunk-meta">
-                  <span><strong>#{chunk.order + 1}</strong></span>
-                  <span className="mat-chunk-loc">{chunk.location}</span>
+                  <strong>Fragmento #{chunk.order + 1}</strong>
+                  <span>{chunk.location}</span>
                 </div>
-                <p className="mat-chunk-text">{chunk.text}</p>
-              </div>
+                <p>{chunk.text}</p>
+              </article>
             ))
           )}
         </div>
 
-        <div className="mat-modal-actions">
-          <button type="button" className="mat-btn mat-btn-secondary" onClick={onClose}>
+        <footer className="mat-dialog__footer">
+          <button type="button" className="btn" onClick={onClose}>
             Cerrar
           </button>
-        </div>
+        </footer>
       </div>
     </div>
   );

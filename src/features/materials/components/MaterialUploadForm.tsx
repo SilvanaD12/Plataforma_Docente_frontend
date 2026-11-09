@@ -49,7 +49,7 @@ export function MaterialUploadForm({ unitId, onUpload, isUploading }: MaterialUp
       return;
     }
     if (!usePermission) {
-      setError('Debes confirmar la autorización de uso del material.');
+      setError('Debes autorizar el uso del material.');
       return;
     }
 
@@ -70,53 +70,62 @@ export function MaterialUploadForm({ unitId, onUpload, isUploading }: MaterialUp
   };
 
   return (
-    <form className="mat-upload-form" onSubmit={handleSubmit}>
-      <h3>Subir nuevo material docente</h3>
+    <section className="card" aria-labelledby="form-upload-title">
+      <h3 className="title" id="form-upload-title">Cargar material didáctico</h3>
+      {error && <p className="alert alert--warn" role="alert">{error}</p>}
 
-      <div className="mat-form-group">
-        <label htmlFor="material-file-input">Archivo (PDF, PPTX o TXT hasta 25 MB):</label>
-        <input
-          id="material-file-input"
-          type="file"
-          accept=".pdf,.pptx,.txt"
-          onChange={handleFileChange}
-          disabled={isUploading}
-        />
-      </div>
+      <form className="stack" onSubmit={handleSubmit}>
+        <div className="course-form-grid">
+          <label className="field">
+            <span className="field__label">Archivo (PDF, PPTX o TXT hasta 25 MB)</span>
+            <input
+              id="material-file-input"
+              className="input"
+              type="file"
+              accept=".pdf,.pptx,.txt"
+              onChange={handleFileChange}
+              disabled={isUploading}
+            />
+          </label>
 
-      <div className="mat-form-group">
-        <label htmlFor="document-type-select">Tipo de documento:</label>
-        <select
-          id="document-type-select"
-          value={documentType}
-          onChange={(e) => setDocumentType(e.target.value)}
-          disabled={isUploading}
-        >
-          {DOCUMENT_TYPES.map((dt) => (
-            <option key={dt} value={dt}>
-              {dt}
-            </option>
-          ))}
-        </select>
-      </div>
+          <label className="field">
+            <span className="field__label">Tipo de documento</span>
+            <select
+              className="input"
+              value={documentType}
+              onChange={(e) => setDocumentType(e.target.value)}
+              disabled={isUploading}
+            >
+              {DOCUMENT_TYPES.map((dt) => (
+                <option key={dt} value={dt}>
+                  {dt}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
 
-      <div className="mat-checkbox-group">
-        <label>
+        <label className="mat-checkbox">
           <input
             type="checkbox"
             checked={usePermission}
             onChange={(e) => setUsePermission(e.target.checked)}
             disabled={isUploading}
           />
-          Autorizo el procesamiento de este material para la generación de recursos didácticos 5E.
+          <span>Autorizo el procesamiento de este material para la generación de recursos 5E.</span>
         </label>
-      </div>
 
-      {error && <div className="mat-form-error">{error}</div>}
-
-      <button type="submit" className="mat-btn mat-btn-primary" disabled={!file || isUploading}>
-        {isUploading ? 'Subiendo archivo...' : 'Cargar material'}
-      </button>
-    </form>
+        <div>
+          <button
+            type="submit"
+            className="btn btn--primary"
+            disabled={!file || isUploading}
+            aria-busy={isUploading}
+          >
+            {isUploading ? 'Subiendo material…' : 'Subir material'}
+          </button>
+        </div>
+      </form>
+    </section>
   );
 }

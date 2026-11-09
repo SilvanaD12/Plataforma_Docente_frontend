@@ -1,0 +1,212 @@
+@import '../../tokens.css';
+
+.mat-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.mat-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.mat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: var(--card-gap);
+}
+
+.mat-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 220px;
+}
+
+.mat-card--error {
+  border-color: var(--color-warn);
+}
+
+.mat-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.mat-card__title {
+  font-size: var(--text-title-size);
+  line-height: var(--text-title-lh);
+  font-weight: var(--weight-semibold);
+  word-break: break-word;
+}
+
+.mat-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-overline-size);
+  letter-spacing: var(--text-overline-tracking);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mat-badge--registrado {
+  background: var(--color-soft);
+  color: var(--color-muted);
+}
+
+.mat-badge--procesando {
+  background: var(--color-warn-soft);
+  color: var(--color-warn);
+}
+
+.mat-badge--procesado {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-dark);
+}
+
+.mat-badge--error {
+  background: var(--color-warn-soft);
+  color: var(--color-warn);
+  border: 1px solid var(--color-warn);
+}
+
+.mat-meta-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-caption-size);
+  color: var(--color-muted);
+}
+
+.mat-card__footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: auto;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-line);
+}
+
+.mat-btn-danger {
+  color: var(--color-warn);
+  border-color: transparent;
+  background: transparent;
+}
+
+.mat-btn-danger:hover {
+  border-color: var(--color-warn);
+  background: var(--color-warn-soft);
+  color: var(--color-warn);
+}
+
+/* Modales */
+.mat-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 33, 30, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  z-index: 100;
+}
+
+.mat-dialog {
+  width: min(540px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-overlay);
+}
+
+.mat-dialog--wide {
+  width: min(800px, 100%);
+}
+
+.mat-dialog__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.mat-dialog__close {
+  min-height: var(--touch-target);
+  min-width: var(--touch-target);
+  padding: 0;
+  background: transparent;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: var(--color-muted);
+}
+
+.mat-dialog__close:hover {
+  color: var(--color-ink);
+}
+
+.mat-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+/* Fragmentos y evidencias */
+.mat-chunk-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-height: 55vh;
+  overflow-y: auto;
+  padding-right: var(--space-2);
+}
+
+.mat-chunk-item {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-inner);
+  padding: var(--space-3);
+  background: var(--color-ground);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.mat-chunk-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-caption-size);
+  color: var(--color-muted);
+}
+
+.mat-evidence-result {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-inner);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.mat-checkbox-label {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  font-size: var(--text-ui-size);
+  cursor: pointer;
+}
+
+.mat-checkbox-label input[type='checkbox'] {
+  margin-top: 3px;
+  accent-color: var(--color-accent);
+}

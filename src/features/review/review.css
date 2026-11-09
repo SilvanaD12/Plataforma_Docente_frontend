@@ -1,0 +1,39 @@
+.verification {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-line);
+  border-left-width: 4px;
+  border-radius: var(--radius-inner);
+  background: var(--color-surface);
+}
+
+.verification p {
+  margin: 0;
+}
+
+.verification--ok {
+  border-left-color: var(--color-accent);
+}
+
+.verification--warning,
+.verification--blocked {
+  border-left-color: var(--color-warn);
+  background: var(--color-warn-soft);
+}
+
+.verification--unknown {
+  border-left-color: var(--color-line-strong);
+}
+
+.verification .btn {
+  justify-self: start;
+}
+
+.review-option {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-inner);
+}

@@ -27,6 +27,14 @@ import {
   startRequest,
   withStatus,
 } from '../model/reviewEditor';
+import {
+  addStructureItem,
+  removeStructureItem,
+  setStructureField,
+  setStructureItem,
+  structureSchema,
+} from '../model/structureEditor';
+import { StructureEditor } from './StructureEditor';
 import { VerificationBadge } from './VerificationBadge';
 import '../review.css';
 
@@ -53,6 +61,7 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry }: Resource
   const inFlight = useRef(false);
   const { draft, saved } = state;
   const locked = !canEdit(state);
+  const schema = structureSchema(draft.type);
   const fieldId = (name: string) => `${saved.id}-${name}`;
 
   async function run(action: () => Promise<Resource>, onSuccess = afterSaveSuccess) {
@@ -103,6 +112,19 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry }: Resource
           onChange={(event) => setState((current) => editDraft(current, { body: event.target.value }))}
         />
       </div>
+
+      {schema && (
+        <StructureEditor
+          idPrefix={fieldId('structure')}
+          schema={schema}
+          structure={(draft.structure ?? {}) as Record<string, unknown>}
+          disabled={locked}
+          onField={(key, value) => setState((current) => setStructureField(current, key, value))}
+          onItem={(listKey, index, field, value) => setState((current) => setStructureItem(current, listKey, index, field, value))}
+          onAdd={(listKey) => setState((current) => addStructureItem(current, listKey))}
+          onRemove={(listKey, index) => setState((current) => removeStructureItem(current, listKey, index))}
+        />
+      )}
 
       {draft.options?.map((option) => (
         <fieldset key={option.id} className="review-option">

@@ -89,3 +89,13 @@ describe('descartar un recurso', () => {
     expect(html).not.toMatch(/<button[^>]*>Descartar<\/button>/);
   });
 });
+
+describe('estructura del recurso', () => {
+  it('una actividad muestra sus elementos para editar; una pregunta no', () => {
+    const activity = render(resource({ type: 'ordenar_pasos', format: 'interactive', options: null, approvalBlockers: [],
+      structure: { sequence: ['Conectar', 'Enviar', 'Confirmar'] } }));
+    expect(activity).toContain('Pasos en orden');
+    expect(activity).toContain('value="Confirmar"');
+    expect(render(resource())).not.toContain('Pasos en orden');
+  });
+});

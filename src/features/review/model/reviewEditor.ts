@@ -1,6 +1,7 @@
 import { ApiError, errorMessage } from '../../../shared/api/httpClient';
 import { isVersionConflict } from '../api/reviewApi';
 import type { DiscardReason, DistractorDecision, Resource, ReviewStatus } from './resource';
+import { structureProblem } from './structureRules';
 
 /** Estado de la edición de un recurso: lo guardado en el servidor y el borrador del docente. */
 export interface EditorState {
@@ -71,7 +72,8 @@ export function isDirty(state: EditorState): boolean {
 
 /** Mientras haya un conflicto de versión no se vuelve a guardar: primero hay que recargar. */
 export function canSave(state: EditorState): boolean {
-  return !state.conflict && !state.pending;
+  // Con la estructura incompleta el servidor rechaza el guardado (422 INVALID_STRUCTURE): se avisa antes.
+  return !state.conflict && !state.pending && structureProblem(state.draft) === null;
 }
 
 /**
@@ -126,12 +128,13 @@ export function distractorProblem(resource: Resource): string | null {
  */
 export function canApprove(state: EditorState): boolean {
   if (state.conflict || state.pending || distractorProblem(state.draft) !== null) return false;
+  if (structureProblem(state.draft) !== null) return false;
   return isDirty(state) || state.saved.approvalBlockers.length === 0;
 }
 
 /** Aviso junto al botón de aprobar mientras el borrador no cumpla la regla de los distractores. */
 export function approvalHint(state: EditorState): string | null {
-  return distractorProblem(state.draft);
+  return distractorProblem(state.draft) ?? structureProblem(state.draft);
 }
 
 export function afterSaveSuccess(state: EditorState, saved: Resource): EditorState {

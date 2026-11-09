@@ -31,6 +31,7 @@ export function TeacherWorkspace({ session, onClose }: { session: Session; onClo
         <p className="sidebar__brand">Plataforma Docente</p>
         <nav aria-label="Navegación docente">
           <NavLink className="nav-link" to="/courses">Mis cursos</NavLink>
+          <NavLink className="nav-link" to="/downloads">Mis descargas</NavLink>
         </nav>
         <div className="sidebar__footer">
           <div className="sidebar__user"><strong>{session.name}</strong><span>{session.email}</span></div>

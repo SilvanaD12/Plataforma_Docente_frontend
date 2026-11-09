@@ -27,6 +27,19 @@ describe('insignia de verificación', () => {
     expect(html).toMatch(/<button[^>]*>Reintentar comprobación<\/button>/);
   });
 
+  it('con cambios sin guardar, el reintento queda desactivado con su aviso', () => {
+    const html = renderToStaticMarkup(
+      <VerificationBadge
+        verification={verification({ status: 'pending', reason: 'No se pudo completar.', retryAvailable: true })}
+        onRetry={() => {}}
+        retryDisabled
+        retryHint="Guarda los cambios para comprobar el texto nuevo."
+      />,
+    );
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Reintentar comprobación<\/button>/);
+    expect(html).toContain('Guarda los cambios para comprobar el texto nuevo.');
+  });
+
   it('sin copia completa muestra el aviso de regenerar en lugar del botón', () => {
     const html = render(verification({ status: 'pending', reason: 'Falta la copia histórica.', retryAvailable: false }));
     expect(html).toContain('Regenera el recurso para poder verificarlo.');

@@ -4,17 +4,21 @@ import type { DistractorDecision, Resource } from './resource';
 import {
   CONFLICT_MESSAGE,
   RESET_NOTICE,
+  RETRY_NEEDS_SAVE,
   afterSaveFailure,
+  afterRetrySuccess,
   afterSaveSuccess,
   approvalHint,
   canApprove,
   canEdit,
+  canRetry,
   canSave,
   distractorProblem,
   editDraft,
   editOption,
   isDirty,
   reloadLatest,
+  retryHint,
   startEditing,
   startRequest,
   withStatus,
@@ -211,5 +215,47 @@ describe('texto con formato (bodyHtml)', () => {
     const changed = editDraft(startEditing(formatted()), { body: 'Nuevo enunciado.' });
     const reverted = editDraft(changed, { body: '¿Qué protocolo confirma la entrega?' });
     expect(reverted.draft.bodyHtml).toBe(formatted().bodyHtml);
+  });
+});
+
+describe('«Reintentar comprobación» con cambios sin guardar', () => {
+  const pending = { status: 'pending', reason: 'No se pudo comprobar.', fingerprint: 'sha256:a', verifiedVersion: 2,
+    evidenceThreshold: 0.6, ruleVersion: 1, checkedAt: '2026-11-08T15:00:00+00:00', retryAvailable: true, summary: {} } as const;
+  const withPending = () => resource({ options: null, verification: pending });
+
+  it('sin cambios se ofrece el reintento, sin aviso', () => {
+    const state = startEditing(withPending());
+    expect(canRetry(state)).toBe(true);
+    expect(retryHint(state)).toBeNull();
+  });
+
+  it('con cambios queda desactivado y avisa que hay que guardar', () => {
+    const state = editDraft(startEditing(withPending()), { body: 'Texto nuevo sin guardar.' });
+    expect(canRetry(state)).toBe(false);
+    expect(retryHint(state)).toBe(RETRY_NEEDS_SAVE);
+    expect(RETRY_NEEDS_SAVE).toBe('Guarda los cambios para comprobar el texto nuevo.');
+  });
+
+  it('mientras hay una solicitud en curso no se reintenta', () => {
+    expect(canRetry(startRequest(startEditing(withPending())))).toBe(false);
+  });
+
+  it('si el reintento termina mientras hay cambios, el borrador no se reemplaza', () => {
+    const edited = startRequest(editDraft(startEditing(withPending()), { body: 'Texto nuevo sin guardar.' }));
+    const checked = withPending();
+    checked.verification = { ...pending, status: 'current', reason: null, retryAvailable: false };
+    const state = afterRetrySuccess(edited, checked);
+    expect(state.draft.body).toBe('Texto nuevo sin guardar.');
+    expect(state.saved.verification?.status).toBe('current');
+    expect(state.pending).toBe(false);
+    expect(isDirty(state)).toBe(true);
+  });
+
+  it('sin cambios, el reintento toma el recurso del servidor como al guardar', () => {
+    const checked = withPending();
+    checked.verification = { ...pending, status: 'current', reason: null, retryAvailable: false };
+    const state = afterRetrySuccess(startRequest(startEditing(withPending())), checked);
+    expect(state.draft).toEqual(checked);
+    expect(isDirty(state)).toBe(false);
   });
 });

@@ -1,16 +1,19 @@
 import { useRef, useState } from 'react';
 import { reviewStatusLabel, type DistractorDecision, type Resource } from '../model/resource';
 import {
+  afterRetrySuccess,
   afterSaveFailure,
   afterSaveSuccess,
   approvalHint,
   canApprove,
   canEdit,
+  canRetry,
   canSave,
   editDraft,
   editOption,
   isDirty,
   reloadLatest,
+  retryHint,
   startEditing,
   startRequest,
   withStatus,
@@ -61,8 +64,9 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry }: Resource
       <p className="overline">{reviewStatusLabel(saved.status)}</p>
       <VerificationBadge
         verification={saved.verification}
-        retrying={state.pending}
-        onRetry={() => run(() => onRetry(saved))}
+        retryDisabled={!canRetry(state)}
+        retryHint={retryHint(state)}
+        onRetry={() => run(() => onRetry(saved), afterRetrySuccess)}
       />
 
       <div className="field">

@@ -19,6 +19,7 @@ export interface EditorState {
 
 export const CONFLICT_MESSAGE =
   'Este recurso cambió en otra pestaña. Recárgalo para ver la versión vigente; lo que escribiste se conserva hasta que recargues.';
+export const RETRY_NEEDS_SAVE = 'Guarda los cambios para comprobar el texto nuevo.';
 export const RESET_NOTICE =
   'El recurso estaba aprobado y cambió su contenido: volvió a revisión y necesita una nueva aprobación.';
 
@@ -73,6 +74,18 @@ export function canSave(state: EditorState): boolean {
   return !state.conflict && !state.pending;
 }
 
+/**
+ * «Reintentar comprobación» comprueba la versión guardada, no el borrador: con cambios sin guardar no se ofrece, para
+ * que el docente no crea que se comprobó su texto nuevo ni pierda el borrador al terminar.
+ */
+export function canRetry(state: EditorState): boolean {
+  return !state.pending && !state.conflict && !isDirty(state);
+}
+
+export function retryHint(state: EditorState): string | null {
+  return isDirty(state) ? RETRY_NEEDS_SAVE : null;
+}
+
 /** Mínimo de distractores aceptados para aprobar; es el mismo que exige el servidor (`MIN_ACCEPTED_DISTRACTORS`). */
 export const MIN_ACCEPTED_DISTRACTORS = 2;
 
@@ -113,6 +126,16 @@ export function approvalHint(state: EditorState): string | null {
 
 export function afterSaveSuccess(state: EditorState, saved: Resource): EditorState {
   return { saved, draft: saved, notice: saved.reviewReset ? RESET_NOTICE : null, error: null, conflict: false, pending: false };
+}
+
+/**
+ * El reintento no cambia la versión. Si al terminar hay cambios sin guardar (respaldo de `canRetry`), se toma solo lo
+ * que calculó el servidor y el borrador del docente se conserva.
+ */
+export function afterRetrySuccess(state: EditorState, checked: Resource): EditorState {
+  if (!isDirty(state)) return afterSaveSuccess(state, checked);
+  const draft = { ...state.draft, verification: checked.verification, approvalBlockers: checked.approvalBlockers };
+  return { ...state, saved: checked, draft, notice: null, error: null, pending: false };
 }
 
 /** Un error al guardar nunca descarta el borrador del docente. */

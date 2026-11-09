@@ -86,6 +86,10 @@
 }
 
 /* Elemento nativo dialog conforme al sistema de diseño */
+dialog.mat-dialog:not([open]) {
+  display: none;
+}
+
 dialog.mat-dialog {
   border: 1px solid var(--color-line);
   border-radius: var(--radius-surface);

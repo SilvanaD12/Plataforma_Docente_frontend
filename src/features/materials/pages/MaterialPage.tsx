@@ -36,13 +36,14 @@ export function MaterialPageContent({ unit, token, onSessionExpired }: MaterialP
   const [isUploading, setIsUploading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // Modales y manejo de foco
+  // Modales, manejo de foco y prevención de condiciones de carrera
   const [isTopicModalOpen, setIsTopicModalOpen] = useState(false);
   const [isChunkModalOpen, setIsChunkModalOpen] = useState(false);
   const [activeChunks, setActiveChunks] = useState<ChunkItem[]>([]);
   const [isLoadingChunks, setIsLoadingChunks] = useState(false);
   const [chunkError, setChunkError] = useState<string | null>(null);
   const lastTriggerRef = useRef<HTMLElement | null>(null);
+  const activeRequestIdRef = useRef<number>(0);
 
   const loadDocuments = useCallback(async () => {
     if (!token) return;
@@ -129,7 +130,10 @@ export function MaterialPageContent({ unit, token, onSessionExpired }: MaterialP
 
   const handleViewChunks = async (documentId: string, triggerElement: HTMLElement) => {
     lastTriggerRef.current = triggerElement;
-    // Limpieza inmediata del estado anterior
+
+    // Incrementamos el identificador para invalidar peticiones previas en vuelo
+    const currentRequestId = ++activeRequestIdRef.current;
+
     setActiveChunks([]);
     setChunkError(null);
     setIsLoadingChunks(true);
@@ -137,23 +141,34 @@ export function MaterialPageContent({ unit, token, onSessionExpired }: MaterialP
 
     try {
       const chunks = await materialsApi.getChunks(documentId, token);
+      // Descartar si el visor cambió de documento o se cerró durante la espera
+      if (activeRequestIdRef.current !== currentRequestId) {
+        return;
+      }
       setActiveChunks(chunks);
     } catch (err: unknown) {
+      if (activeRequestIdRef.current !== currentRequestId) {
+        return;
+      }
       if (err instanceof ApiError && err.status === 401) {
         onSessionExpired(token);
         return;
       }
-      // El error se muestra dentro del modal, no en la página
       setChunkError(errorMessage(err));
     } finally {
-      setIsLoadingChunks(false);
+      if (activeRequestIdRef.current === currentRequestId) {
+        setIsLoadingChunks(false);
+      }
     }
   };
 
   const handleCloseChunkModal = () => {
+    // Invalida inmediatamente cualquier petición pendiente
+    activeRequestIdRef.current++;
     setIsChunkModalOpen(false);
     setChunkError(null);
     setActiveChunks([]);
+    setIsLoadingChunks(false);
     lastTriggerRef.current?.focus();
   };
 

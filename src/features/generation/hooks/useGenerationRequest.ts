@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError } from '../../../shared/api/httpClient';
-import { getGenerationRequest, listGenerationRequests } from '../api/generationApi';
+import { getGenerationRequest, listGenerationRequests, startGenerationRequest } from '../api/generationApi';
 import { generationError, isSessionExpired, type GenerationError } from '../model/generationErrors';
-import { isTerminal, type GenerationRequestStatus, type GenerationRequestSummary } from '../model/generationRequest';
+import {
+  isTerminal, type GenerationRequestStatus, type GenerationRequestSummary, type StartGenerationRequest,
+} from '../model/generationRequest';
 import { generationStorage, type GenerationStorage } from './generationStorage';
 
 export const firstPollDelay = 2000;
@@ -73,16 +75,46 @@ export async function pollGeneration({
   }
 }
 
-/** El pedido guardado o, si no hay ninguno, el activo más reciente de la unidad. */
-export async function recoverRequestId(
-  unitId: string, storage: GenerationStorage, listActive: () => Promise<GenerationRequestSummary[]>,
-) {
+interface RecoverOptions {
+  unitId: string;
+  storage: GenerationStorage;
+  /** Reenvía el POST con la clave original: 200 devuelve el pedido existente y 202 lo crea. */
+  resend: (key: string, payload: StartGenerationRequest) => Promise<{ request: GenerationRequestStatus }>;
+  listActive: () => Promise<GenerationRequestSummary[]>;
+}
+
+/** El servidor respondió y no aceptará ese reenvío: 4xx salvo sesión vencida (401) y límite temporal (429). */
+function isDefinitiveRejection(cause: unknown) {
+  return cause instanceof ApiError && cause.status >= 400 && cause.status < 500 && cause.status !== 401 && cause.status !== 429;
+}
+
+/**
+ * Pedido que se sigue al montar:
+ * - Con `requestId` guardado, ese pedido.
+ * - Con clave y contenido guardados pero sin `requestId` (el envío quedó sin respuesta), reenvía con la misma
+ *   clave y vincula el pedido que responda el servidor. No usa la lista de activos: podría ser otro pedido.
+ *   Si el servidor rechaza el reenvío de forma definitiva (cualquier 4xx salvo 401 y 429, incluido el 409
+ *   IDEMPOTENCY_KEY_REUSED), limpia lo guardado. Ante un fallo de red o un 5xx conserva la clave para reintentar.
+ *   En todos los casos el error se propaga para mostrar el mensaje.
+ * - Sin nada guardado, el activo más reciente de la unidad.
+ */
+export async function recoverRequest({ unitId, storage, resend, listActive }: RecoverOptions): Promise<PollTarget | null> {
   const stored = storage.read(unitId);
-  if (stored?.requestId) return stored.requestId;
+  if (stored?.requestId) return { requestId: stored.requestId, initial: null };
+
+  if (stored) {
+    try {
+      const { request } = await resend(stored.key, stored.payload);
+      storage.save(unitId, { ...stored, requestId: request.id });
+      return { requestId: request.id, initial: request };
+    } catch (cause) {
+      if (isDefinitiveRejection(cause)) storage.clear(unitId);
+      throw cause;
+    }
+  }
+
   const [latest] = await listActive();
-  if (!latest) return null;
-  if (stored) storage.save(unitId, { ...stored, requestId: latest.id });
-  return latest.id;
+  return latest ? { requestId: latest.id, initial: null } : null;
 }
 
 interface UseGenerationRequestOptions {
@@ -120,9 +152,16 @@ export function useGenerationRequest({ unitId, token, onSessionExpired }: UseGen
   useEffect(() => {
     let active = true;
     setRecovering(true);
-    recoverRequestId(unitId, generationStorage, () => listGenerationRequests(token, unitId, true))
-      .then((requestId) => {
-        if (active && requestId) setTarget((current) => current ?? { requestId, initial: null });
+    recoverRequest({
+      unitId,
+      storage: generationStorage,
+      resend: (key, payload) => startGenerationRequest(token, key, payload),
+      listActive: () => listGenerationRequests(token, unitId, true),
+    })
+      .then((recovered) => {
+        if (!active || !recovered) return;
+        if (recovered.initial) setRequest((current) => current ?? recovered.initial);
+        setTarget((current) => current ?? recovered);
       })
       .catch((cause) => { if (active) handleFatal(cause); })
       .finally(() => { if (active) setRecovering(false); });

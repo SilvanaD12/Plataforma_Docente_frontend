@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../../shared/api/httpClient';
 import type { GenerationRequestStatus, GenerationRequestSummary, RequestStatus } from '../model/generationRequest';
 import type { GenerationStorage, StoredGeneration } from './generationStorage';
-import { abortableWait, nextPollDelay, pollGeneration, recoverRequestId } from './useGenerationRequest';
+import { abortableWait, nextPollDelay, pollGeneration, recoverRequest } from './useGenerationRequest';
 
 const status = (value: RequestStatus) => ({ id: 'gen-req-1', status: value, steps: [] }) as unknown as GenerationRequestStatus;
 
@@ -88,7 +88,8 @@ describe('Consulta periódica', () => {
 
 describe('Recuperación al recargar', () => {
   const payload = { mode: 'individual' as const, unitId: 'unidad-1', resourceTypes: ['glosario'] };
-  const summary = { id: 'gen-req-activo' } as GenerationRequestSummary;
+  const ownRequest = { id: 'gen-req-propio', status: 'running', steps: [] } as unknown as GenerationRequestStatus;
+  const otherActive = { id: 'gen-req-otro-activo' } as GenerationRequestSummary;
 
   function memoryStorage(initial: StoredGeneration | null): GenerationStorage & { entry: StoredGeneration | null } {
     const storage = {
@@ -100,18 +101,95 @@ describe('Recuperación al recargar', () => {
     return storage;
   }
 
-  it('usa el requestId guardado sin consultar la lista', async () => {
-    const list = vi.fn();
+  it('usa el requestId guardado sin reenviar ni consultar la lista', async () => {
+    const resend = vi.fn();
+    const listActive = vi.fn();
     const storage = memoryStorage({ key: 'k-12345678', payload, requestId: 'gen-req-guardado' });
-    await expect(recoverRequestId('unidad-1', storage, list)).resolves.toBe('gen-req-guardado');
-    expect(list).not.toHaveBeenCalled();
+
+    await expect(recoverRequest({ unitId: 'unidad-1', storage, resend, listActive }))
+      .resolves.toEqual({ requestId: 'gen-req-guardado', initial: null });
+    expect(resend).not.toHaveBeenCalled();
+    expect(listActive).not.toHaveBeenCalled();
   });
 
-  it('sin requestId, toma el pedido activo más reciente y lo asocia a la clave guardada', async () => {
-    const storage = memoryStorage({ key: 'k-12345678', payload, requestId: null });
-    await expect(recoverRequestId('unidad-1', storage, async () => [summary])).resolves.toBe('gen-req-activo');
-    expect(storage.entry?.requestId).toBe('gen-req-activo');
+  it('un envío sin respuesta recupera su propio pedido con la clave original aunque haya otro activo', async () => {
+    const storage = memoryStorage({ key: 'clave-original', payload, requestId: null });
+    const resend = vi.fn().mockResolvedValueOnce({ request: ownRequest, created: false });
+    const listActive = vi.fn().mockResolvedValue([otherActive]);
 
-    await expect(recoverRequestId('unidad-1', memoryStorage(null), async () => [])).resolves.toBeNull();
+    await expect(recoverRequest({ unitId: 'unidad-1', storage, resend, listActive }))
+      .resolves.toEqual({ requestId: 'gen-req-propio', initial: ownRequest });
+    expect(resend).toHaveBeenCalledWith('clave-original', payload);
+    expect(listActive).not.toHaveBeenCalled();
+    expect(storage.entry).toEqual({ key: 'clave-original', payload, requestId: 'gen-req-propio' });
+  });
+
+  it('si el reenvío crea el pedido (202), también lo vincula a la clave original', async () => {
+    const storage = memoryStorage({ key: 'clave-original', payload, requestId: null });
+    const resend = vi.fn().mockResolvedValueOnce({ request: ownRequest, created: true });
+
+    await recoverRequest({ unitId: 'unidad-1', storage, resend, listActive: vi.fn() });
+    expect(storage.entry?.requestId).toBe('gen-req-propio');
+  });
+
+  it('con 409 IDEMPOTENCY_KEY_REUSED limpia lo guardado, propaga el mensaje y no vincula otro pedido', async () => {
+    const storage = memoryStorage({ key: 'clave-original', payload, requestId: null });
+    const conflict = new ApiError(409, 'Esta clave ya se usó con otros datos.', 'IDEMPOTENCY_KEY_REUSED');
+    const listActive = vi.fn().mockResolvedValue([otherActive]);
+
+    await expect(recoverRequest({ unitId: 'unidad-1', storage, resend: vi.fn().mockRejectedValueOnce(conflict), listActive }))
+      .rejects.toMatchObject({ status: 409, code: 'IDEMPOTENCY_KEY_REUSED', message: 'Esta clave ya se usó con otros datos.' });
+    expect(storage.entry).toBeNull();
+    expect(listActive).not.toHaveBeenCalled();
+  });
+
+  it('con 400 NO_PROCESSED_MATERIAL limpia lo guardado y propaga el mensaje del servidor', async () => {
+    const storage = memoryStorage({ key: 'clave-original', payload, requestId: null });
+    const noMaterial = new ApiError(400, 'La unidad no tiene material procesado.', 'NO_PROCESSED_MATERIAL');
+    const listActive = vi.fn().mockResolvedValue([otherActive]);
+
+    await expect(recoverRequest({ unitId: 'unidad-1', storage, resend: vi.fn().mockRejectedValueOnce(noMaterial), listActive }))
+      .rejects.toMatchObject({ status: 400, code: 'NO_PROCESSED_MATERIAL', message: 'La unidad no tiene material procesado.' });
+    expect(storage.entry).toBeNull();
+    expect(listActive).not.toHaveBeenCalled();
+  });
+
+  it('limpia lo guardado ante otros rechazos definitivos (404, 422)', async () => {
+    for (const rejection of [new ApiError(404, 'La unidad no existe.', 'UNIT_NOT_FOUND'), new ApiError(422, 'Parámetros no válidos.')]) {
+      const storage = memoryStorage({ key: 'clave-original', payload, requestId: null });
+      await expect(recoverRequest({ unitId: 'unidad-1', storage, resend: vi.fn().mockRejectedValueOnce(rejection), listActive: vi.fn() }))
+        .rejects.toBe(rejection);
+      expect(storage.entry).toBeNull();
+    }
+  });
+
+  it('conserva la clave ante un fallo de red, un 5xx, un 429 o una sesión vencida', async () => {
+    const failures = [
+      new TypeError('Failed to fetch'),
+      new ApiError(503, 'Material no respondió.', 'EVIDENCE_UNAVAILABLE'),
+      new ApiError(429, 'Ya tienes 2 pedidos en curso.', 'TOO_MANY_ACTIVE_REQUESTS'),
+      new ApiError(401, 'La sesión venció.', 'UNAUTHORIZED'),
+    ];
+    for (const failure of failures) {
+      const entry = { key: 'clave-original', payload, requestId: null };
+      const storage = memoryStorage(entry);
+      const listActive = vi.fn();
+
+      await expect(recoverRequest({ unitId: 'unidad-1', storage, resend: vi.fn().mockRejectedValueOnce(failure), listActive }))
+        .rejects.toBe(failure);
+      expect(storage.entry).toEqual(entry);
+      expect(listActive).not.toHaveBeenCalled();
+    }
+  });
+
+  it('sin nada guardado usa el pedido activo más reciente, o ninguno', async () => {
+    const resend = vi.fn();
+    const storage = memoryStorage(null);
+
+    await expect(recoverRequest({ unitId: 'unidad-1', storage, resend, listActive: async () => [otherActive] }))
+      .resolves.toEqual({ requestId: 'gen-req-otro-activo', initial: null });
+    expect(storage.entry).toBeNull();
+    await expect(recoverRequest({ unitId: 'unidad-1', storage, resend, listActive: async () => [] })).resolves.toBeNull();
+    expect(resend).not.toHaveBeenCalled();
   });
 });

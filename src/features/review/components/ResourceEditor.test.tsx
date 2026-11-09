@@ -99,3 +99,19 @@ describe('estructura del recurso', () => {
     expect(render(resource())).not.toContain('Pasos en orden');
   });
 });
+
+describe('multimedia invalidada', () => {
+  it('muestra el aviso y «Generar de nuevo» en un recurso pendiente (REV-C8)', () => {
+    const value = resource({
+      type: 'imagen_ilustrativa', format: 'image', options: null,
+      structure: { prompt: 'Dos routers conectados', alt: 'Dos routers', caption: '' },
+      media: { status: 'fallback', invalidated: true },
+      approvalBlockers: ['Cambiaste el guion o la descripción: genera el archivo de nuevo para poder aprobar.'],
+    });
+    const html = renderToStaticMarkup(
+      <ResourceEditor resource={value} onSave={noop} onReload={noop} onRetry={noop} onGenerateMedia={noop} />,
+    );
+    expect(html).toContain('el archivo anterior ya no se usa');
+    expect(html).toMatch(/<button[^>]*>Generar de nuevo<\/button>/);
+  });
+});

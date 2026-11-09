@@ -67,6 +67,8 @@ export interface ResourceMedia {
   fileName?: string | null;
   note?: string | null;
   outdated?: boolean;
+  /** REV-C8: cambió la descripción o el guion; el archivo anterior ya no se usa hasta generarlo de nuevo. */
+  invalidated?: boolean;
 }
 
 export interface Resource {

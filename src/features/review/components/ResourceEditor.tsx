@@ -34,6 +34,7 @@ import {
   setStructureItem,
   structureSchema,
 } from '../model/structureEditor';
+import { afterMediaResult, canGenerateMedia, mediaView } from '../model/mediaView';
 import { StructureEditor } from './StructureEditor';
 import { VerificationBadge } from './VerificationBadge';
 import '../review.css';
@@ -43,6 +44,8 @@ interface ResourceEditorProps {
   onSave: (resource: Resource) => Promise<Resource>;
   onReload: () => Promise<Resource>;
   onRetry: (resource: Resource) => Promise<Resource>;
+  /** «Generar de nuevo» la imagen o el audio invalidados (REV-C8). Sin ella no se ofrece el botón. */
+  onGenerateMedia?: (resource: Resource) => Promise<Resource>;
 }
 
 const DECISIONS: { value: DistractorDecision; label: string }[] = [
@@ -55,7 +58,7 @@ const DECISIONS: { value: DistractorDecision; label: string }[] = [
  * Edición y aprobación de un recurso. Las reglas de qué hacer con cada resultado (conflicto de versión, aprobación
  * bloqueada, vuelta a revisión) están en `model/reviewEditor`; aquí solo se usan.
  */
-export function ResourceEditor({ resource, onSave, onReload, onRetry }: ResourceEditorProps) {
+export function ResourceEditor({ resource, onSave, onReload, onRetry, onGenerateMedia }: ResourceEditorProps) {
   const [state, setState] = useState(() => startEditing(resource));
   const [reason, setReason] = useState<DiscardReason>('sin_sentido');
   const inFlight = useRef(false);
@@ -63,6 +66,7 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry }: Resource
   const locked = !canEdit(state);
   const schema = structureSchema(draft.type);
   const fieldId = (name: string) => `${saved.id}-${name}`;
+  const media = mediaView(state);
 
   async function run(action: () => Promise<Resource>, onSuccess = afterSaveSuccess) {
     if (inFlight.current) return;
@@ -83,6 +87,18 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry }: Resource
       <p className="overline">{reviewStatusLabel(saved.status)}</p>
       {saved.status === 'descartado' && discardReasonLabel(saved.discardReason) && (
         <p className="muted">Motivo: {discardReasonLabel(saved.discardReason)}</p>
+      )}
+      {media && (
+        <div className="verification verification--blocked" role="alert">
+          <p><strong>{media.message}</strong></p>
+          {media.hint && <p className="muted">{media.hint}</p>}
+          {media.actionLabel && onGenerateMedia && (
+            <button type="button" className="btn" disabled={!canGenerateMedia(state)}
+              onClick={() => run(() => onGenerateMedia(saved), afterMediaResult)}>
+              {media.actionLabel}
+            </button>
+          )}
+        </div>
       )}
       <VerificationBadge
         verification={saved.verification}

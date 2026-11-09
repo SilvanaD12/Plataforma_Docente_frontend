@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import type { UnitContext } from '../../../shared/types/courses';
-import { getResource, listResources, retryVerification, saveResource } from '../api/reviewApi';
+import { getResource, listResources, regenerateMedia, retryVerification, saveResource } from '../api/reviewApi';
 import { ResourceEditor } from '../components/ResourceEditor';
 import type { Resource } from '../model/resource';
 import { listFailed, listLoaded, listMessage, replaceResource, type ReviewListState } from '../model/reviewList';
@@ -56,6 +56,7 @@ export function ReviewPageContent({ token, unitId, onSessionExpired }: ReviewPag
           onSave={(draft) => track(saveResource(token, draft))}
           onReload={() => track(getResource(token, unitId, resource.id))}
           onRetry={(current) => track(retryVerification(token, current))}
+          onGenerateMedia={(current) => track(regenerateMedia(token, current))}
         />
       ))}
     </section>

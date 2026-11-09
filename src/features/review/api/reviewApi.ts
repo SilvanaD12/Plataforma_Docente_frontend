@@ -47,6 +47,14 @@ export function retryVerification(token: string, resource: Resource) {
   return request<Resource>(resourcePath(resource) + '/verification', 'POST', { expectedVersion: resource.version }, token);
 }
 
+/**
+ * Genera de nuevo la imagen o el audio con la descripción o el guion guardados (REV-C8). Solo para recursos pendientes
+ * (409 RESOURCE_NOT_PENDING) y con la generación activa en el servidor (409 MEDIA_GENERATION_DISABLED).
+ */
+export function regenerateMedia(token: string, resource: Resource) {
+  return request<Resource>(resourcePath(resource) + '/media', 'POST', undefined, token);
+}
+
 export function isVersionConflict(error: unknown): boolean {
   return error instanceof ApiError && error.status === 409 && error.code === 'VERSION_CONFLICT';
 }

@@ -1,6 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Resource } from '../model/resource';
-import { getResource, isVersionConflict, listResources, retryVerification, reviewBody, saveResource } from './reviewApi';
+import {
+  getResource,
+  isVersionConflict,
+  listResources,
+  regenerateMedia,
+  retryVerification,
+  reviewBody,
+  saveResource,
+} from './reviewApi';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -121,5 +129,16 @@ describe('API de revisión', () => {
     expect(call.url).toBe('/api/v1/units/unidad-1/resources/rec-1/verification');
     expect(call.method).toBe('POST');
     expect(call.body).toEqual({ expectedVersion: 3 });
+  });
+
+  it('genera de nuevo la imagen o el audio con lo guardado (REV-C8)', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json(resource()));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await regenerateMedia('token-docente', resource());
+    const call = lastCall(fetchMock);
+    expect(call.url).toBe('/api/v1/units/unidad-1/resources/rec-1/media');
+    expect(call.method).toBe('POST');
+    expect(call.headers.get('Authorization')).toBe('Bearer token-docente');
   });
 });

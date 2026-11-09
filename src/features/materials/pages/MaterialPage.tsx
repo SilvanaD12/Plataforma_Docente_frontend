@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import type { UnitContext } from '../../../shared/types/courses';
 import { ApiError, errorMessage } from '../../../shared/api/httpClient';
@@ -36,11 +36,13 @@ export function MaterialPageContent({ unit, token, onSessionExpired }: MaterialP
   const [isUploading, setIsUploading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // Modales
+  // Modales y manejo de foco
   const [isTopicModalOpen, setIsTopicModalOpen] = useState(false);
   const [isChunkModalOpen, setIsChunkModalOpen] = useState(false);
   const [activeChunks, setActiveChunks] = useState<ChunkItem[]>([]);
   const [isLoadingChunks, setIsLoadingChunks] = useState(false);
+  const [chunkError, setChunkError] = useState<string | null>(null);
+  const lastTriggerRef = useRef<HTMLElement | null>(null);
 
   const loadDocuments = useCallback(async () => {
     if (!token) return;
@@ -125,9 +127,14 @@ export function MaterialPageContent({ unit, token, onSessionExpired }: MaterialP
     }
   };
 
-  const handleViewChunks = async (documentId: string) => {
-    setIsChunkModalOpen(true);
+  const handleViewChunks = async (documentId: string, triggerElement: HTMLElement) => {
+    lastTriggerRef.current = triggerElement;
+    // Limpieza inmediata del estado anterior
+    setActiveChunks([]);
+    setChunkError(null);
     setIsLoadingChunks(true);
+    setIsChunkModalOpen(true);
+
     try {
       const chunks = await materialsApi.getChunks(documentId, token);
       setActiveChunks(chunks);
@@ -136,10 +143,28 @@ export function MaterialPageContent({ unit, token, onSessionExpired }: MaterialP
         onSessionExpired(token);
         return;
       }
-      setActionError(errorMessage(err));
+      // El error se muestra dentro del modal, no en la página
+      setChunkError(errorMessage(err));
     } finally {
       setIsLoadingChunks(false);
     }
+  };
+
+  const handleCloseChunkModal = () => {
+    setIsChunkModalOpen(false);
+    setChunkError(null);
+    setActiveChunks([]);
+    lastTriggerRef.current?.focus();
+  };
+
+  const handleOpenTopicModal = (e: React.MouseEvent<HTMLButtonElement>) => {
+    lastTriggerRef.current = e.currentTarget;
+    setIsTopicModalOpen(true);
+  };
+
+  const handleCloseTopicModal = () => {
+    setIsTopicModalOpen(false);
+    lastTriggerRef.current?.focus();
   };
 
   const handleImportTopic = async (topic: string, maxResults: number) => {
@@ -177,7 +202,7 @@ export function MaterialPageContent({ unit, token, onSessionExpired }: MaterialP
         <button
           type="button"
           className="btn"
-          onClick={() => setIsTopicModalOpen(true)}
+          onClick={handleOpenTopicModal}
         >
           Importar de fuente abierta
         </button>
@@ -235,15 +260,16 @@ export function MaterialPageContent({ unit, token, onSessionExpired }: MaterialP
 
       <TopicSearchModal
         isOpen={isTopicModalOpen}
-        onClose={() => setIsTopicModalOpen(false)}
+        onClose={handleCloseTopicModal}
         onImport={handleImportTopic}
       />
 
       <ChunkListModal
         isOpen={isChunkModalOpen}
-        onClose={() => setIsChunkModalOpen(false)}
+        onClose={handleCloseChunkModal}
         chunks={activeChunks}
         isLoading={isLoadingChunks}
+        error={chunkError}
       />
     </section>
   );

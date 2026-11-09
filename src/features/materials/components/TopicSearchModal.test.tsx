@@ -3,11 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { TopicSearchModal } from './TopicSearchModal';
 
 describe('TopicSearchModal', () => {
-  it('no renderiza nada si isOpen es false', () => {
+  it('no muestra el diálogo abierto si isOpen es false', () => {
     const html = renderToStaticMarkup(
       <TopicSearchModal isOpen={false} onClose={() => {}} onImport={async () => {}} />,
     );
-    expect(html).toBe('');
+    expect(html).not.toContain('open');
   });
 
   it('renderiza el formulario de búsqueda de fuente abierta cuando está abierto', () => {

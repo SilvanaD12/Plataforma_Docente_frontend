@@ -1,11 +1,12 @@
-import { DocumentItem } from '../model/types';
+import type { DocumentItem } from '../model/types';
+import { formatFileSize } from '../model/materialValidation';
 
 interface DocumentCardProps {
   document: DocumentItem;
   onProcess: (id: string) => void;
   onDelete: (id: string) => void;
   onDownload: (id: string, name: string) => void;
-  onViewChunks: (id: string) => void;
+  onViewChunks: (id: string, triggerElement: HTMLElement) => void;
   isProcessing: boolean;
 }
 
@@ -17,42 +18,28 @@ export function DocumentCard({
   onViewChunks,
   isProcessing,
 }: DocumentCardProps) {
-  const formatSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
-
   const isError = document.status === 'error';
+  const isProcessed = document.status === 'procesado';
 
   return (
     <article className={`mat-item ${isError ? 'mat-item--error' : ''}`}>
       <div className="mat-item__head">
-        <div>
-          <span className="overline">{document.kind}</span>
-          <h4 className="mat-item__title">{document.fileName}</h4>
-        </div>
+        <h4 className="mat-item__title">{document.fileName}</h4>
         <span className={`mat-badge mat-badge--${document.status}`}>
           {document.status}
         </span>
       </div>
 
       <div className="mat-meta">
-        <span><strong>Tamaño:</strong> {formatSize(document.sizeBytes)}</span>
-        <span><strong>Tipo:</strong> {document.documentType}</span>
-        {document.pageCount ? <span><strong>Páginas:</strong> {document.pageCount}</span> : null}
-        {document.fragmentCount > 0 ? (
-          <span><strong>Fragmentos:</strong> {document.fragmentCount}</span>
-        ) : null}
-        {document.origin && (
-          <span className="muted">
-            Fuente abierta: <em>{document.origin.topic}</em>
-          </span>
-        )}
+        <span>{document.documentType}</span>
+        <span>{formatFileSize(document.sizeBytes)}</span>
+        {document.pageCount ? <span>{document.pageCount} páginas</span> : null}
       </div>
 
       {isError && document.errorMessage && (
-        <p className="alert alert--warn" role="alert">{document.errorMessage}</p>
+        <p className="alert alert--warn" role="alert">
+          {document.errorMessage}
+        </p>
       )}
 
       <div className="mat-actions">
@@ -68,11 +55,11 @@ export function DocumentCard({
           </button>
         )}
 
-        {document.status === 'procesado' && (
+        {isProcessed && (
           <button
             type="button"
             className="btn"
-            onClick={() => onViewChunks(document.id)}
+            onClick={(e) => onViewChunks(document.id, e.currentTarget)}
           >
             Ver fragmentos ({document.fragmentCount})
           </button>
@@ -88,7 +75,7 @@ export function DocumentCard({
 
         <button
           type="button"
-          className="btn"
+          className="btn btn--danger"
           onClick={() => onDelete(document.id)}
         >
           Eliminar

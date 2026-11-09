@@ -7,7 +7,7 @@ describe('ChunkListModal', () => {
     const html = renderToStaticMarkup(
       <ChunkListModal isOpen={false} onClose={() => {}} chunks={[]} isLoading={false} />,
     );
-    expect(html).toBe('');
+    expect(html).not.toContain('open');
   });
 
   it('renderiza la lista de fragmentos indexados cuando está abierto', () => {
@@ -28,5 +28,19 @@ describe('ChunkListModal', () => {
       <ChunkListModal isOpen={true} onClose={() => {}} chunks={[]} isLoading={false} />,
     );
     expect(html).toContain('No hay fragmentos disponibles.');
+  });
+
+  it('muestra el mensaje de error dentro del diálogo si la carga falla', () => {
+    const html = renderToStaticMarkup(
+      <ChunkListModal
+        isOpen={true}
+        onClose={() => {}}
+        chunks={[]}
+        isLoading={false}
+        error="No se encontraron los fragmentos del documento solicitado."
+      />,
+    );
+    expect(html).toContain('alert--warn');
+    expect(html).toContain('No se encontraron los fragmentos del documento solicitado.');
   });
 });

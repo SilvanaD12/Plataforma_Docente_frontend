@@ -10,8 +10,10 @@ import {
   afterSaveSuccess,
   approvalHint,
   canApprove,
+  canDiscard,
   canEdit,
   canRetry,
+  canRestore,
   canSave,
   distractorProblem,
   editDraft,
@@ -257,5 +259,32 @@ describe('«Reintentar comprobación» con cambios sin guardar', () => {
     const state = afterRetrySuccess(startRequest(startEditing(withPending())), checked);
     expect(state.draft).toEqual(checked);
     expect(isDirty(state)).toBe(false);
+  });
+});
+
+describe('descartar con motivo', () => {
+  it('descartar guarda el estado y el motivo elegido', () => {
+    const draft = withStatus(startEditing(resource()).draft, 'descartado', 'fuera_de_unidad');
+    expect(draft).toMatchObject({ status: 'descartado', discardReason: 'fuera_de_unidad' });
+  });
+
+  it('se ofrece en un recurso pendiente o aprobado, no en uno ya descartado', () => {
+    expect(canDiscard(startEditing(resource()))).toBe(true);
+    expect(canDiscard(startEditing(resource({ status: 'aprobado' })))).toBe(true);
+    expect(canDiscard(startEditing(resource({ status: 'descartado', discardReason: 'otro' })))).toBe(false);
+  });
+
+  it('no se ofrece con una solicitud en curso ni durante un conflicto de versión', () => {
+    expect(canDiscard(startRequest(startEditing(resource())))).toBe(false);
+    const conflicted = afterSaveFailure(startEditing(resource()), new ApiError(409, 'Conflicto.', 'VERSION_CONFLICT'));
+    expect(canDiscard(conflicted)).toBe(false);
+  });
+
+  it('un recurso descartado puede volver a revisión, sin motivo', () => {
+    const discarded = startEditing(resource({ status: 'descartado', discardReason: 'otro' }));
+    expect(canRestore(discarded)).toBe(true);
+    expect(withStatus(discarded.draft, 'pendiente')).toMatchObject({ status: 'pendiente', discardReason: null });
+    expect(canRestore(startEditing(resource()))).toBe(false);
+    expect(canRestore(startRequest(discarded))).toBe(false);
   });
 });

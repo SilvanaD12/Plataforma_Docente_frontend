@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  RESOURCE_DISCARD_REASONS,
+  discardReasonLabel,
   reviewStatusLabel,
   VERIFICATION_LABELS,
   verificationAction,
@@ -55,5 +57,17 @@ describe('estado de verificación', () => {
   it('una verificación vigente o ausente no pide ninguna acción', () => {
     expect(verificationAction(verification())).toBeNull();
     expect(verificationAction(null)).toBeNull();
+  });
+});
+
+describe('motivos para descartar un recurso', () => {
+  it('ofrece solo los motivos que aplican a un recurso, sin «regenerado»', () => {
+    expect(RESOURCE_DISCARD_REASONS.map(({ value }) => value)).toEqual(['sin_sentido', 'duplicado', 'fuera_de_unidad', 'otro']);
+  });
+
+  it('nombra el motivo guardado, incluido el que pone el servidor al regenerar', () => {
+    expect(discardReasonLabel('fuera_de_unidad')).toBe('No corresponde a la unidad');
+    expect(discardReasonLabel('regenerado')).toBe('Reemplazado por uno regenerado');
+    expect(discardReasonLabel(null)).toBeNull();
   });
 });

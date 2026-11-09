@@ -6,6 +6,7 @@ import { CourseFormPage } from '../features/courses/pages/CourseFormPage';
 import { CourseDetailPage } from '../features/courses/pages/CourseDetailPage';
 import { CourseListPage } from '../features/courses/pages/CourseListPage';
 import { CoursesLayout } from '../features/courses/pages/CoursesLayout';
+import { DownloadsPage } from '../features/export/pages/DownloadsPage';
 import { ExportPage } from '../features/export/pages/ExportPage';
 import { GenerationPage } from '../features/generation/pages/GenerationPage';
 import { MaterialPage } from '../features/materials/pages/MaterialPage';
@@ -52,6 +53,8 @@ export function App() {
             <Route path="export" element={<ExportPage />} />
           </Route>
         </Route>
+        {/* REV-C9: el historial del docente no depende de ningún curso; se ve aunque la lista de cursos esté vacía. */}
+        <Route path="/downloads" element={session && <DownloadsPage key={session.token} token={session.token} onSessionExpired={closeSession} />} />
       </Route>
       <Route path="*" element={<Navigate to={session ? '/courses' : '/login'} replace />} />
     </Routes>

@@ -47,6 +47,47 @@ export function retryVerification(token: string, resource: Resource) {
   return request<Resource>(resourcePath(resource) + '/verification', 'POST', { expectedVersion: resource.version }, token);
 }
 
+/**
+ * Genera de nuevo la imagen o el audio con la descripción o el guion guardados (REV-C8). Solo para recursos pendientes
+ * (409 RESOURCE_NOT_PENDING) y con la generación activa en el servidor (409 MEDIA_GENERATION_DISABLED).
+ */
+export function regenerateMedia(token: string, resource: Resource) {
+  return request<Resource>(resourcePath(resource) + '/media', 'POST', undefined, token);
+}
+
+export interface RegenerationResult {
+  previousResourceId: string;
+  /** El anterior pasó a Descartados con el motivo «regenerado»; false si cambió mientras tanto y quedan los dos. */
+  previousDiscarded: boolean;
+  newResourceIds: string[];
+  status: 'succeeded' | 'running';
+}
+
+/**
+ * Pide a Generación un recurso nuevo con los parámetros guardados (REV-C12). Si falla, el anterior queda igual y el
+ * error trae el motivo: 409 o 422 con el código de Generación, 502 REGENERATION_FAILED o 503 REGENERATION_UNAVAILABLE.
+ */
+export function regenerateResource(token: string, resource: Resource) {
+  return request<RegenerationResult>(
+    resourcePath(resource) + '/regenerations', 'POST', { expectedVersion: resource.version }, token,
+  );
+}
+
+export interface RegenerationStatusResult extends Omit<RegenerationResult, 'status'> {
+  status: 'succeeded' | 'running' | 'failed';
+  /** Solo en `failed`: el motivo y el código de Generación (por ejemplo NO_PROCESSED_MATERIAL). */
+  reason: string | null;
+  code: string | null;
+}
+
+/**
+ * D10: estado de la última regeneración del recurso. Mientras sigue en curso, el servidor consulta a Generación; al
+ * terminar bien hace el descarte condicional del anterior y, si falla, devuelve el motivo.
+ */
+export function getRegenerationStatus(token: string, resource: Pick<Resource, 'unitId' | 'id'>) {
+  return request<RegenerationStatusResult>(resourcePath(resource) + '/regeneration', 'GET', undefined, token);
+}
+
 export function isVersionConflict(error: unknown): boolean {
   return error instanceof ApiError && error.status === 409 && error.code === 'VERSION_CONFLICT';
 }

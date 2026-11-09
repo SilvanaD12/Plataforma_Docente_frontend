@@ -1,6 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Resource } from '../model/resource';
-import { getResource, isVersionConflict, listResources, retryVerification, reviewBody, saveResource } from './reviewApi';
+import {
+  getRegenerationStatus,
+  getResource,
+  isVersionConflict,
+  listResources,
+  regenerateMedia,
+  regenerateResource,
+  retryVerification,
+  reviewBody,
+  saveResource,
+} from './reviewApi';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -121,5 +131,48 @@ describe('API de revisión', () => {
     expect(call.url).toBe('/api/v1/units/unidad-1/resources/rec-1/verification');
     expect(call.method).toBe('POST');
     expect(call.body).toEqual({ expectedVersion: 3 });
+  });
+
+  it('genera de nuevo la imagen o el audio con lo guardado (REV-C8)', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json(resource()));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await regenerateMedia('token-docente', resource());
+    const call = lastCall(fetchMock);
+    expect(call.url).toBe('/api/v1/units/unidad-1/resources/rec-1/media');
+    expect(call.method).toBe('POST');
+    expect(call.headers.get('Authorization')).toBe('Bearer token-docente');
+  });
+
+  it('regenera el recurso enviando la versión leída (REV-C12)', async () => {
+    const result = { previousResourceId: 'rec-1', previousDiscarded: true, newResourceIds: ['rec-2'], status: 'succeeded' };
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json(result));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(regenerateResource('token-docente', resource())).resolves.toEqual(result);
+    const call = lastCall(fetchMock);
+    expect(call.url).toBe('/api/v1/units/unidad-1/resources/rec-1/regenerations');
+    expect(call.method).toBe('POST');
+    expect(call.body).toEqual({ expectedVersion: 3 });
+  });
+
+  it('consulta el estado de la última regeneración del recurso (D10)', async () => {
+    const state = { previousResourceId: 'rec-1', previousDiscarded: false, newResourceIds: [], status: 'running', reason: null, code: null };
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json(state));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(getRegenerationStatus('token-docente', resource())).resolves.toEqual(state);
+    const call = lastCall(fetchMock);
+    expect(call.url).toBe('/api/v1/units/unidad-1/resources/rec-1/regeneration');
+    expect(call.method).toBe('GET');
+  });
+
+  it('un rechazo de Generación trae su código y su motivo (REV-C13)', async () => {
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json(
+      { error: { code: 'INVALID_OUTCOME', message: 'El resultado de aprendizaje no pertenece a la unidad.' } }, { status: 422 },
+    )));
+    await expect(regenerateResource('token', resource())).rejects.toMatchObject({
+      status: 422, code: 'INVALID_OUTCOME', message: 'El resultado de aprendizaje no pertenece a la unidad.',
+    });
   });
 });

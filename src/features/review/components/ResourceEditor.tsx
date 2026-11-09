@@ -1,12 +1,21 @@
 import { useRef, useState } from 'react';
-import { reviewStatusLabel, type DistractorDecision, type Resource } from '../model/resource';
+import {
+  RESOURCE_DISCARD_REASONS,
+  discardReasonLabel,
+  reviewStatusLabel,
+  type DiscardReason,
+  type DistractorDecision,
+  type Resource,
+} from '../model/resource';
 import {
   afterRetrySuccess,
   afterSaveFailure,
   afterSaveSuccess,
   approvalHint,
   canApprove,
+  canDiscard,
   canEdit,
+  canRestore,
   canRetry,
   canSave,
   editDraft,
@@ -18,6 +27,16 @@ import {
   startRequest,
   withStatus,
 } from '../model/reviewEditor';
+import {
+  addStructureItem,
+  removeStructureItem,
+  setStructureField,
+  setStructureItem,
+  structureSchema,
+} from '../model/structureEditor';
+import { afterMediaResult, canGenerateMedia, mediaView } from '../model/mediaView';
+import { canRegenerate, regenerationHint } from '../model/regenerationView';
+import { StructureEditor } from './StructureEditor';
 import { VerificationBadge } from './VerificationBadge';
 import '../review.css';
 
@@ -26,6 +45,13 @@ interface ResourceEditorProps {
   onSave: (resource: Resource) => Promise<Resource>;
   onReload: () => Promise<Resource>;
   onRetry: (resource: Resource) => Promise<Resource>;
+  /** «Generar de nuevo» la imagen o el audio invalidados (REV-C8). Sin ella no se ofrece el botón. */
+  onGenerateMedia?: (resource: Resource) => Promise<Resource>;
+  /**
+   * «Regenerar» (REV-C12). Si termina bien, la revisión recarga la lista y vuelve a cargar este editor; si falla, el
+   * editor muestra el motivo y el recurso queda como estaba (REV-C13). Sin ella no se ofrece el botón.
+   */
+  onRegenerate?: (resource: Resource) => Promise<void>;
 }
 
 const DECISIONS: { value: DistractorDecision; label: string }[] = [
@@ -38,12 +64,15 @@ const DECISIONS: { value: DistractorDecision; label: string }[] = [
  * Edición y aprobación de un recurso. Las reglas de qué hacer con cada resultado (conflicto de versión, aprobación
  * bloqueada, vuelta a revisión) están en `model/reviewEditor`; aquí solo se usan.
  */
-export function ResourceEditor({ resource, onSave, onReload, onRetry }: ResourceEditorProps) {
+export function ResourceEditor({ resource, onSave, onReload, onRetry, onGenerateMedia, onRegenerate }: ResourceEditorProps) {
   const [state, setState] = useState(() => startEditing(resource));
+  const [reason, setReason] = useState<DiscardReason>('sin_sentido');
   const inFlight = useRef(false);
   const { draft, saved } = state;
   const locked = !canEdit(state);
+  const schema = structureSchema(draft.type);
   const fieldId = (name: string) => `${saved.id}-${name}`;
+  const media = mediaView(state);
 
   async function run(action: () => Promise<Resource>, onSuccess = afterSaveSuccess) {
     if (inFlight.current) return;
@@ -59,9 +88,38 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry }: Resource
     }
   }
 
+  async function regenerate(action: (current: Resource) => Promise<void>) {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setState(startRequest);
+    try {
+      await action(saved);
+      setState((current) => ({ ...current, pending: false }));
+    } catch (error) {
+      setState((current) => afterSaveFailure(current, error));
+    } finally {
+      inFlight.current = false;
+    }
+  }
+
   return (
     <article className="card stack">
       <p className="overline">{reviewStatusLabel(saved.status)}</p>
+      {saved.status === 'descartado' && discardReasonLabel(saved.discardReason) && (
+        <p className="muted">Motivo: {discardReasonLabel(saved.discardReason)}</p>
+      )}
+      {media && (
+        <div className="verification verification--blocked" role="alert">
+          <p><strong>{media.message}</strong></p>
+          {media.hint && <p className="muted">{media.hint}</p>}
+          {media.actionLabel && onGenerateMedia && (
+            <button type="button" className="btn" disabled={!canGenerateMedia(state)}
+              onClick={() => run(() => onGenerateMedia(saved), afterMediaResult)}>
+              {media.actionLabel}
+            </button>
+          )}
+        </div>
+      )}
       <VerificationBadge
         verification={saved.verification}
         retryDisabled={!canRetry(state)}
@@ -90,6 +148,19 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry }: Resource
           onChange={(event) => setState((current) => editDraft(current, { body: event.target.value }))}
         />
       </div>
+
+      {schema && (
+        <StructureEditor
+          idPrefix={fieldId('structure')}
+          schema={schema}
+          structure={(draft.structure ?? {}) as Record<string, unknown>}
+          disabled={locked}
+          onField={(key, value) => setState((current) => setStructureField(current, key, value))}
+          onItem={(listKey, index, field, value) => setState((current) => setStructureItem(current, listKey, index, field, value))}
+          onAdd={(listKey) => setState((current) => addStructureItem(current, listKey))}
+          onRemove={(listKey, index) => setState((current) => removeStructureItem(current, listKey, index))}
+        />
+      )}
 
       {draft.options?.map((option) => (
         <fieldset key={option.id} className="review-option">
@@ -141,6 +212,39 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry }: Resource
               onClick={() => run(() => onSave(withStatus(draft, 'aprobado')))}>
               Aprobar
             </button>
+            {saved.status === 'descartado' ? (
+              <button type="button" className="btn" disabled={!canRestore(state)}
+                onClick={() => run(() => onSave(withStatus(draft, 'pendiente')))}>
+                Volver a revisión
+              </button>
+            ) : (
+              <div className="review-discard">
+                <div className="field">
+                  <label htmlFor={fieldId('discard-reason')}>Motivo del descarte</label>
+                  <select
+                    id={fieldId('discard-reason')}
+                    className="input"
+                    value={reason}
+                    disabled={!canDiscard(state)}
+                    onChange={(event) => setReason(event.target.value as DiscardReason)}
+                  >
+                    {RESOURCE_DISCARD_REASONS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
+                  </select>
+                </div>
+                <button type="button" className="btn" disabled={!canDiscard(state)}
+                  onClick={() => run(() => onSave(withStatus(draft, 'descartado', reason)))}>
+                  Descartar
+                </button>
+              </div>
+            )}
+            {onRegenerate && saved.status !== 'descartado' && (
+              <div className="review-discard">
+                <button type="button" className="btn" disabled={!canRegenerate(state)} onClick={() => regenerate(onRegenerate)}>
+                  Regenerar
+                </button>
+                {regenerationHint(state) && <p className="muted">{regenerationHint(state)}</p>}
+              </div>
+            )}
           </>
         )}
       </div>

@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { MemoryRouter } from 'react-router-dom';
+import { StaticRouter } from 'react-router-dom/server';
 import { describe, expect, it } from 'vitest';
 import type { Unit } from '../../../shared/types/courses';
 import type { GenerationRequestStatus, GenerationStep } from '../model/generationRequest';
@@ -37,7 +37,7 @@ function generationRequest(overrides: Partial<GenerationRequestStatus> = {}): Ge
   };
 }
 
-const render = (element: JSX.Element) => renderToStaticMarkup(<MemoryRouter>{element}</MemoryRouter>);
+const render = (element: JSX.Element) => renderToStaticMarkup(<StaticRouter location="/">{element}</StaticRouter>);
 const catalog = { types, loading: false, error: '', reload: () => undefined };
 
 describe('Formulario de generación', () => {

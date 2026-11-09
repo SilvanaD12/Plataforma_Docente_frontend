@@ -171,6 +171,11 @@ describe('Avisos de respaldo', () => {
 
     const drafting = render(<FallbackNotices retrievalMode={null} steps={[aiStep, ruleStep]} resourceTypes={types} />);
     expect(drafting).toContain('data-notice="generator"');
+    expect(drafting).toContain(
+      '<strong>Redacción sin IA.</strong> En estos pasos la IA no respondió o su redacción no tenía respaldo en el material, '
+      + 'y el recurso lo redactó el generador por reglas. Revísalos con más atención:',
+    );
+    expect(drafting).not.toContain('El modelo de IA no respondió');
     expect(drafting).not.toContain('data-notice="retrieval"');
     expect(drafting).toContain('Evaluar: Ítem de opción múltiple');
     expect(drafting).not.toContain('Enganchar: Pregunta detonante');

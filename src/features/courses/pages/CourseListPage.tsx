@@ -1,8 +1,9 @@
-import { Link, useOutletContext } from 'react-router-dom';
+import { Link, useLocation, useOutletContext } from 'react-router-dom';
 import type { CoursesContext } from './CoursesLayout';
 
 export function CourseListPage() {
   const { courses } = useOutletContext<CoursesContext>();
+  const { state } = useLocation();
 
   return (
     <div className="stack stack--loose">
@@ -13,6 +14,7 @@ export function CourseListPage() {
         </div>
         <Link className="btn btn--primary" to="new">Nuevo curso</Link>
       </header>
+      {state?.courseDeleted === true && <p className="alert" role="status">Curso eliminado.</p>}
       {courses.length === 0 ? (
         <section className="card" aria-labelledby="empty-courses">
           <h2 className="h2" id="empty-courses">Todavía no tienes cursos</h2>

@@ -73,6 +73,21 @@ export function regenerateResource(token: string, resource: Resource) {
   );
 }
 
+export interface RegenerationStatusResult extends Omit<RegenerationResult, 'status'> {
+  status: 'succeeded' | 'running' | 'failed';
+  /** Solo en `failed`: el motivo y el código de Generación (por ejemplo NO_PROCESSED_MATERIAL). */
+  reason: string | null;
+  code: string | null;
+}
+
+/**
+ * D10: estado de la última regeneración del recurso. Mientras sigue en curso, el servidor consulta a Generación; al
+ * terminar bien hace el descarte condicional del anterior y, si falla, devuelve el motivo.
+ */
+export function getRegenerationStatus(token: string, resource: Pick<Resource, 'unitId' | 'id'>) {
+  return request<RegenerationStatusResult>(resourcePath(resource) + '/regeneration', 'GET', undefined, token);
+}
+
 export function isVersionConflict(error: unknown): boolean {
   return error instanceof ApiError && error.status === 409 && error.code === 'VERSION_CONFLICT';
 }

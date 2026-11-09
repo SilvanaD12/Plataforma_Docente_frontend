@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Resource } from '../model/resource';
 import {
+  getRegenerationStatus,
   getResource,
   isVersionConflict,
   listResources,
@@ -153,6 +154,17 @@ describe('API de revisión', () => {
     expect(call.url).toBe('/api/v1/units/unidad-1/resources/rec-1/regenerations');
     expect(call.method).toBe('POST');
     expect(call.body).toEqual({ expectedVersion: 3 });
+  });
+
+  it('consulta el estado de la última regeneración del recurso (D10)', async () => {
+    const state = { previousResourceId: 'rec-1', previousDiscarded: false, newResourceIds: [], status: 'running', reason: null, code: null };
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json(state));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(getRegenerationStatus('token-docente', resource())).resolves.toEqual(state);
+    const call = lastCall(fetchMock);
+    expect(call.url).toBe('/api/v1/units/unidad-1/resources/rec-1/regeneration');
+    expect(call.method).toBe('GET');
   });
 
   it('un rechazo de Generación trae su código y su motivo (REV-C13)', async () => {

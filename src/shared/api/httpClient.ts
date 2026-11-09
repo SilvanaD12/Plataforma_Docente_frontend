@@ -12,8 +12,16 @@ export class ApiError extends Error {
 
 const apiBase = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
 
-function send(path: string, method: string, body?: object, token?: string): Promise<Response> {
-  const headers = new Headers();
+export interface ApiResponse<T> {
+  status: number;
+  data: T;
+}
+
+function fetchApi(
+  path: string, method: string, body?: object, token?: string, extraHeaders?: Record<string, string>,
+): Promise<Response> {
+  // Authorization y Content-Type se fijan después, para que una cabecera adicional no los reemplace.
+  const headers = new Headers(extraHeaders);
   if (token) headers.set('Authorization', 'Bearer ' + token);
   if (body) headers.set('Content-Type', 'application/json');
 
@@ -33,10 +41,26 @@ async function apiError(response: Response): Promise<ApiError> {
   return new ApiError(response.status, message, code, data?.error?.details);
 }
 
-export async function request<T>(path: string, method: string, body?: object, token?: string): Promise<T> {
-  const response = await send(path, method, body, token);
+async function send<T>(
+  path: string, method: string, body?: object, token?: string, extraHeaders?: Record<string, string>,
+): Promise<ApiResponse<T>> {
+  const response = await fetchApi(path, method, body, token, extraHeaders);
   if (!response.ok) throw await apiError(response);
-  return response.status === 204 ? undefined as T : response.json();
+  const data = response.status === 204 ? undefined as T : await response.json() as T;
+  return { status: response.status, data };
+}
+
+export async function request<T>(
+  path: string, method: string, body?: object, token?: string, headers?: Record<string, string>,
+): Promise<T> {
+  return (await send<T>(path, method, body, token, headers)).data;
+}
+
+/** Igual que `request`, pero conserva el código de estado (por ejemplo, para distinguir 202 de 200). */
+export function requestWithStatus<T>(
+  path: string, method: string, body?: object, token?: string, headers?: Record<string, string>,
+): Promise<ApiResponse<T>> {
+  return send<T>(path, method, body, token, headers);
 }
 
 export interface DownloadedFile {
@@ -52,7 +76,7 @@ function fileNameFrom(contentDisposition: string | null): string | null {
 
 /** POST que devuelve un archivo (por ejemplo, una exportación). Los errores se leen igual que en `request`. */
 export async function requestFile(path: string, body: object, token: string): Promise<DownloadedFile> {
-  const response = await send(path, 'POST', body, token);
+  const response = await fetchApi(path, 'POST', body, token);
   if (!response.ok) throw await apiError(response);
   return { blob: await response.blob(), fileName: fileNameFrom(response.headers.get('Content-Disposition')) };
 }

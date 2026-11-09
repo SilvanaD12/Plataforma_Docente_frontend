@@ -110,6 +110,27 @@ export function reviewStatusLabel(status: ReviewStatus): string {
   return REVIEW_STATUS_LABELS[status];
 }
 
+const DISCARD_REASON_LABELS: Record<DiscardReason, string> = {
+  sin_sentido: 'No tiene sentido o es confuso',
+  tambien_correcto: 'También es correcto',
+  duplicado: 'Repite otro recurso',
+  fuera_de_unidad: 'No corresponde a la unidad',
+  otro: 'Otro motivo',
+  regenerado: 'Reemplazado por uno regenerado',
+};
+
+/**
+ * Motivos que el docente elige al descartar un recurso. «También es correcto» es solo de los distractores y
+ * «regenerado» lo pone el servidor al reemplazar el recurso por uno regenerado (REV-C12).
+ */
+export const RESOURCE_DISCARD_REASONS: { value: DiscardReason; label: string }[] = (
+  ['sin_sentido', 'duplicado', 'fuera_de_unidad', 'otro'] as const
+).map((value) => ({ value, label: DISCARD_REASON_LABELS[value] }));
+
+export function discardReasonLabel(reason: DiscardReason | null | undefined): string | null {
+  return reason ? DISCARD_REASON_LABELS[reason] : null;
+}
+
 export const VERIFICATION_LABELS: Record<VerificationStatus, string> = {
   current: 'Vigente',
   insufficient: 'Insuficiente',

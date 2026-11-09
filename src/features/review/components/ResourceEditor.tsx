@@ -1,12 +1,21 @@
 import { useRef, useState } from 'react';
-import { reviewStatusLabel, type DistractorDecision, type Resource } from '../model/resource';
+import {
+  RESOURCE_DISCARD_REASONS,
+  discardReasonLabel,
+  reviewStatusLabel,
+  type DiscardReason,
+  type DistractorDecision,
+  type Resource,
+} from '../model/resource';
 import {
   afterRetrySuccess,
   afterSaveFailure,
   afterSaveSuccess,
   approvalHint,
   canApprove,
+  canDiscard,
   canEdit,
+  canRestore,
   canRetry,
   canSave,
   editDraft,
@@ -40,6 +49,7 @@ const DECISIONS: { value: DistractorDecision; label: string }[] = [
  */
 export function ResourceEditor({ resource, onSave, onReload, onRetry }: ResourceEditorProps) {
   const [state, setState] = useState(() => startEditing(resource));
+  const [reason, setReason] = useState<DiscardReason>('sin_sentido');
   const inFlight = useRef(false);
   const { draft, saved } = state;
   const locked = !canEdit(state);
@@ -62,6 +72,9 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry }: Resource
   return (
     <article className="card stack">
       <p className="overline">{reviewStatusLabel(saved.status)}</p>
+      {saved.status === 'descartado' && discardReasonLabel(saved.discardReason) && (
+        <p className="muted">Motivo: {discardReasonLabel(saved.discardReason)}</p>
+      )}
       <VerificationBadge
         verification={saved.verification}
         retryDisabled={!canRetry(state)}
@@ -141,6 +154,31 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry }: Resource
               onClick={() => run(() => onSave(withStatus(draft, 'aprobado')))}>
               Aprobar
             </button>
+            {saved.status === 'descartado' ? (
+              <button type="button" className="btn" disabled={!canRestore(state)}
+                onClick={() => run(() => onSave(withStatus(draft, 'pendiente')))}>
+                Volver a revisión
+              </button>
+            ) : (
+              <div className="review-discard">
+                <div className="field">
+                  <label htmlFor={fieldId('discard-reason')}>Motivo del descarte</label>
+                  <select
+                    id={fieldId('discard-reason')}
+                    className="input"
+                    value={reason}
+                    disabled={!canDiscard(state)}
+                    onChange={(event) => setReason(event.target.value as DiscardReason)}
+                  >
+                    {RESOURCE_DISCARD_REASONS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
+                  </select>
+                </div>
+                <button type="button" className="btn" disabled={!canDiscard(state)}
+                  onClick={() => run(() => onSave(withStatus(draft, 'descartado', reason)))}>
+                  Descartar
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>

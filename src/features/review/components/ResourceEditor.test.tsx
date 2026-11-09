@@ -72,3 +72,20 @@ describe('editor de un recurso', () => {
     expect(render(resource())).not.toMatch(/5E|Gemini|Wikipedia/);
   });
 });
+
+describe('descartar un recurso', () => {
+  it('un recurso en revisión ofrece descartar eligiendo el motivo', () => {
+    const html = render(resource());
+    expect(html).toContain('Motivo del descarte');
+    expect(html).toContain('No corresponde a la unidad');
+    expect(html).not.toContain('Reemplazado por uno regenerado');
+    expect(html).toMatch(/<button[^>]*>Descartar<\/button>/);
+  });
+
+  it('un recurso descartado muestra su motivo y ofrece volver a revisión', () => {
+    const html = render(resource({ status: 'descartado', discardReason: 'regenerado', approvalBlockers: [] }));
+    expect(html).toContain('Reemplazado por uno regenerado');
+    expect(html).toMatch(/<button[^>]*>Volver a revisión<\/button>/);
+    expect(html).not.toMatch(/<button[^>]*>Descartar<\/button>/);
+  });
+});

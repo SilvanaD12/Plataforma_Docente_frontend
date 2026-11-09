@@ -82,6 +82,16 @@ export function canRetry(state: EditorState): boolean {
   return !state.pending && !state.conflict && !isDirty(state);
 }
 
+/** Descartar se ofrece en un recurso pendiente o aprobado, sin una solicitud en curso ni un conflicto de versión. */
+export function canDiscard(state: EditorState): boolean {
+  return !state.pending && !state.conflict && state.saved.status !== 'descartado';
+}
+
+/** Un recurso descartado puede volver a revisión; al volver pierde el motivo del descarte. */
+export function canRestore(state: EditorState): boolean {
+  return !state.pending && !state.conflict && state.saved.status === 'descartado';
+}
+
 export function retryHint(state: EditorState): string | null {
   return isDirty(state) ? RETRY_NEEDS_SAVE : null;
 }

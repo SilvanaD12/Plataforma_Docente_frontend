@@ -4,6 +4,7 @@ import { FallbackNotices } from '../components/FallbackNotices';
 import { GenerationForm } from '../components/GenerationForm';
 import { GenerationProgress } from '../components/GenerationProgress';
 import { useGenerationRequest } from '../hooks/useGenerationRequest';
+import { useProcessedMaterial } from '../hooks/useProcessedMaterial';
 import { useResourceTypes } from '../hooks/useResourceTypes';
 import { useStartGeneration } from '../hooks/useStartGeneration';
 import type { GenerationError } from '../model/generationErrors';
@@ -18,6 +19,7 @@ export function GenerationPage() {
 
 function GenerationView({ course, unit, token, onSessionExpired }: UnitContext) {
   const catalog = useResourceTypes();
+  const processedMaterial = useProcessedMaterial(token, unit.id, onSessionExpired);
   const tracking = useGenerationRequest({ unitId: unit.id, token, onSessionExpired });
   const starting = useStartGeneration({ unitId: unit.id, token, onSessionExpired, onStarted: tracking.track });
   const { request } = tracking;
@@ -36,6 +38,13 @@ function GenerationView({ course, unit, token, onSessionExpired }: UnitContext) 
       </p>
 
       {tracking.recovering && !request && <p className="muted" role="status">Buscando pedidos en curso…</p>}
+
+      {!running && !tracking.recovering && processedMaterial === false && starting.error?.kind !== 'noMaterial' && (
+        <div className="alert alert--warn" role="status">
+          <p>Esta unidad todavía no tiene material procesado.</p>
+          <p><Link to="../material">Ir a la pestaña Material</Link></p>
+        </div>
+      )}
 
       {!running && !tracking.recovering && (
         <GenerationForm unit={unit} catalog={catalog} submitting={starting.submitting} onSubmit={(body) => void starting.start(body)} />

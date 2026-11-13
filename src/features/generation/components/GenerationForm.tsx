@@ -3,7 +3,7 @@ import type { Unit } from '../../../shared/types/courses';
 import type { ResourceTypesState } from '../hooks/useResourceTypes';
 import {
   changeMode, generationFormProblem, generationRequestBody, initialGenerationForm, toggleType,
-  type GenerationForm as GenerationFormValue,
+  maxGenerationContextLength, type GenerationForm as GenerationFormValue,
 } from '../model/generationForm';
 import {
   maxQuantity, maxSequenceTypes, minQuantity, stageLabel,
@@ -122,6 +122,21 @@ export function GenerationForm({ unit, catalog, submitting = false, error, onSub
               <option key={outcome.id} value={outcome.id}>{outcome.code ? `${outcome.code}: ${outcome.text}` : outcome.text}</option>
             ))}
           </select>
+        </label>
+      </div>
+
+      <div className="generation-context">
+        <label className="field">
+          <span className="field__label">Audiencia (opcional)</span>
+          <input className="input" type="text" name="audience" value={form.audience}
+            maxLength={maxGenerationContextLength} disabled={submitting}
+            onChange={(event) => update({ ...form, audience: event.target.value })} />
+        </label>
+        <label className="field">
+          <span className="field__label">Competencia (opcional)</span>
+          <input className="input" type="text" name="competency" value={form.competency}
+            maxLength={maxGenerationContextLength} disabled={submitting}
+            onChange={(event) => update({ ...form, competency: event.target.value })} />
         </label>
       </div>
 

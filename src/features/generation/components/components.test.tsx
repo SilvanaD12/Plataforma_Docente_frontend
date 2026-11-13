@@ -6,6 +6,7 @@ import type { GenerationRequestStatus, GenerationStep } from '../model/generatio
 import type { ResourceTypeInfo } from '../model/resourceTypes';
 import { FallbackNotices } from './FallbackNotices';
 import { GenerationForm } from './GenerationForm';
+import { initialGenerationForm } from '../model/generationForm';
 import { GenerationProgress } from './GenerationProgress';
 import type { GenerationError } from '../model/generationErrors';
 import { StartErrorNotice } from '../pages/GenerationPage';
@@ -51,16 +52,18 @@ describe('Formulario de generación', () => {
     expect(html.match(/type="checkbox"/g)).toHaveLength(2);
     expect(html).toContain('RA1.1: Compara TCP y UDP.');
     expect(html).toContain('Generar secuencia');
+    expect(html).toMatch(/Audiencia \(opcional\)<\/span><input[^>]+name="audience"[^>]+maxLength="200"/);
+    expect(html).toMatch(/Competencia \(opcional\)<\/span><input[^>]+name="competency"[^>]+maxLength="200"/);
   });
 
   it('usa un solo tipo en modo individual y bloquea el resto al llegar a 8 en secuencia', () => {
     const individual = render(<GenerationForm unit={unit} catalog={catalog} onSubmit={() => undefined}
-      initialValue={{ mode: 'individual', resourceTypes: [], quantity: 1, outcomeId: '' }} />);
+      initialValue={{ ...initialGenerationForm, mode: 'individual' }} />);
     expect(individual).not.toContain('type="checkbox"');
     expect(individual).toContain('Generar recurso');
 
     const full = render(<GenerationForm unit={unit} catalog={catalog} onSubmit={() => undefined}
-      initialValue={{ mode: 'sequence', resourceTypes: ['pregunta_detonante', 'a', 'b', 'c', 'd', 'e', 'f', 'g'], quantity: 1, outcomeId: '' }} />);
+      initialValue={{ ...initialGenerationForm, resourceTypes: ['pregunta_detonante', 'a', 'b', 'c', 'd', 'e', 'f', 'g'] }} />);
     expect(full).toContain('Elegidos: 8 de 8');
     expect(full).toMatch(/<input type="checkbox" name="resourceTypes" disabled="" value="item_opcion_multiple"\/>/);
     expect(full).toMatch(/<input type="checkbox" name="resourceTypes" checked="" value="pregunta_detonante"\/>/);

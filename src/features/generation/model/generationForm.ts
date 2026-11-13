@@ -1,11 +1,12 @@
 import {
   maxQuantity, maxSequenceTypes, minQuantity,
-  type GenerationMode, type StartGenerationRequest,
+  type GenerationMode, type ResourceModality, type StartGenerationRequest,
 } from './generationRequest';
-import type { ResourceTypeInfo } from './resourceTypes';
+import { hasModalityCatalog, typesForModality, type ResourceTypeInfo } from './resourceTypes';
 
 export interface GenerationForm {
   mode: GenerationMode;
+  modality: ResourceModality;
   resourceTypes: string[];
   quantity: number;
   outcomeId: string;
@@ -17,6 +18,7 @@ export const maxGenerationContextLength = 200;
 
 export const initialGenerationForm: GenerationForm = {
   mode: 'sequence',
+  modality: 'Textual',
   resourceTypes: [],
   quantity: 1,
   outcomeId: '',
@@ -27,6 +29,11 @@ export const initialGenerationForm: GenerationForm = {
 /** Al pasar a modo individual se conserva solo el primer tipo elegido. */
 export function changeMode(form: GenerationForm, mode: GenerationMode): GenerationForm {
   return { ...form, mode, resourceTypes: mode === 'individual' ? form.resourceTypes.slice(0, 1) : form.resourceTypes };
+}
+
+export function changeModality(form: GenerationForm, modality: ResourceModality, catalog: ResourceTypeInfo[]): GenerationForm {
+  const compatibleIds = new Set(typesForModality(catalog, modality).map((type) => type.id));
+  return { ...form, modality, resourceTypes: form.resourceTypes.filter((id) => compatibleIds.has(id)) };
 }
 
 export function toggleType(form: GenerationForm, id: string): GenerationForm {
@@ -50,6 +57,8 @@ export function generationRequestBody(form: GenerationForm, unitId: string, cata
     outcomeId: form.outcomeId || null,
     audience: form.audience.trim() || undefined,
     competency: form.competency.trim() || undefined,
+    // Older catalog responses omit modalities. Keep their existing request shape.
+    ...(hasModalityCatalog(catalog) ? { modalities: [form.modality] } : {}),
   };
 }
 

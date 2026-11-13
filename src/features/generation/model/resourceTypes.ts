@@ -1,4 +1,4 @@
-import { stages, type Stage } from './generationRequest';
+import { stages, type ResourceModality, type Stage } from './generationRequest';
 
 /** Elemento de `GET /api/v1/resource-types` (ResourceTypeResponse en docs/api/openapi.json). */
 export interface ResourceTypeInfo {
@@ -10,6 +10,15 @@ export interface ResourceTypeInfo {
   group: string;
   format: 'text' | 'visual' | 'image' | 'audio' | 'interactive';
   hasOptions: boolean;
+  modalities?: ResourceModality[];
+}
+
+export function hasModalityCatalog(types: ResourceTypeInfo[]) {
+  return types.some((type) => type.modalities !== undefined);
+}
+
+export function typesForModality(types: ResourceTypeInfo[], modality: ResourceModality) {
+  return types.filter((type) => type.modalities?.includes(modality));
 }
 
 export function typesByStage(types: ResourceTypeInfo[]) {

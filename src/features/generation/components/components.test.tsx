@@ -69,6 +69,21 @@ describe('Formulario de generación', () => {
     expect(full).toMatch(/<input type="checkbox" name="resourceTypes" checked="" value="pregunta_detonante"\/>/);
   });
 
+  it('filters the modality catalog and disables submission without a compatible selection', () => {
+    const filteredCatalog = { ...catalog, types: [
+      { ...types[0], modalities: ['Textual'] },
+      { ...types[1], modalities: ['Gamificado'] },
+    ] satisfies ResourceTypeInfo[] };
+    const html = render(<GenerationForm unit={unit} catalog={filteredCatalog} onSubmit={() => undefined}
+      initialValue={{ ...initialGenerationForm, modality: 'Gamificado' }} />);
+    expect(html).toContain('name="modality"');
+    expect(html).toContain('Contexto</legend>');
+    expect(html).toContain('Ítem de opción múltiple');
+    expect(html).not.toContain('Pregunta detonante');
+    expect(html).toContain('Elige un tipo de recurso compatible');
+    expect(html).toMatch(/type="submit"[^>]*disabled=""/);
+  });
+
   it('avisa si el catálogo no cargó y no permite enviar', () => {
     const html = render(<GenerationForm unit={unit} catalog={{ ...catalog, types: [], error: 'Sin conexión.' }} onSubmit={() => undefined} />);
     expect(html).toContain('Sin conexión.');

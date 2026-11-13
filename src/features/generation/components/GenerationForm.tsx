@@ -168,7 +168,7 @@ export function GenerationForm({ unit, catalog, submitting = false, error, onSub
       <div>
         {needsType && (
           <p className="field__hint" id="generation-modality-hint" role="status">
-            {visibleTypes.length ? 'Elige un tipo de recurso compatible con esta modalidad para generar.' : 'No hay tipos de recurso disponibles para esta modalidad.'}
+            {visibleTypes.length ? 'Elige un tipo de recurso compatible con esta modalidad para generar.' : 'Esta modalidad todavía no tiene tipos disponibles.'}
           </p>
         )}
         <button className="btn btn--primary" type="submit" aria-busy={submitting}

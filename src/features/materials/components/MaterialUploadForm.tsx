@@ -1,8 +1,9 @@
 import { useState, ChangeEvent, FormEvent } from 'react';
+import type { Unit } from '../../../shared/types/courses';
 import { UploadContextPayload } from '../model/types';
 
 interface MaterialUploadFormProps {
-  unitId: string;
+  unit: Unit;
   onUpload: (file: File, context: UploadContextPayload) => Promise<void>;
   isUploading: boolean;
 }
@@ -15,11 +16,14 @@ const DOCUMENT_TYPES = [
   'Otro material didáctico',
 ];
 
-export function MaterialUploadForm({ unitId, onUpload, isUploading }: MaterialUploadFormProps) {
+export function MaterialUploadForm({ unit, onUpload, isUploading }: MaterialUploadFormProps) {
   const [file, setFile] = useState<File | null>(null);
   const [documentType, setDocumentType] = useState(DOCUMENT_TYPES[0]);
+  const [selectedOutcomeIds, setSelectedOutcomeIds] = useState<string[]>([]);
   const [usePermission, setUsePermission] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const hasOutcomes = unit.outcomes.length > 0;
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -42,10 +46,23 @@ export function MaterialUploadForm({ unitId, onUpload, isUploading }: MaterialUp
     setFile(selected);
   };
 
+  const handleToggleOutcome = (outcomeId: string) => {
+    setError(null);
+    setSelectedOutcomeIds((prev) =>
+      prev.includes(outcomeId)
+        ? prev.filter((id) => id !== outcomeId)
+        : [...prev, outcomeId]
+    );
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!file) {
       setError('Selecciona un archivo antes de continuar.');
+      return;
+    }
+    if (hasOutcomes && selectedOutcomeIds.length === 0) {
+      setError('Selecciona resultados de aprendizaje de esta unidad.');
       return;
     }
     if (!usePermission) {
@@ -56,12 +73,13 @@ export function MaterialUploadForm({ unitId, onUpload, isUploading }: MaterialUp
     try {
       setError(null);
       await onUpload(file, {
-        unitId,
-        outcomeIds: [],
+        unitId: unit.id,
+        outcomeIds: hasOutcomes ? selectedOutcomeIds : [],
         documentType,
         usePermission: true,
       });
       setFile(null);
+      setSelectedOutcomeIds([]);
       const input = document.getElementById('material-file-input') as HTMLInputElement;
       if (input) input.value = '';
     } catch (err: unknown) {
@@ -105,6 +123,22 @@ export function MaterialUploadForm({ unitId, onUpload, isUploading }: MaterialUp
           </label>
         </div>
 
+        {hasOutcomes && (
+          <fieldset className="stack" style={{ border: 'none', padding: 0, margin: 0 }} disabled={isUploading}>
+            <legend className="field__label">Resultados de aprendizaje de la unidad</legend>
+            {unit.outcomes.map((outcome) => (
+              <label key={outcome.id} className="mat-checkbox">
+                <input
+                  type="checkbox"
+                  checked={selectedOutcomeIds.includes(outcome.id)}
+                  onChange={() => handleToggleOutcome(outcome.id)}
+                />
+                <span>{outcome.code ? `${outcome.code}: ${outcome.text}` : outcome.text}</span>
+              </label>
+            ))}
+          </fieldset>
+        )}
+
         <label className="mat-checkbox">
           <input
             type="checkbox"
@@ -119,7 +153,7 @@ export function MaterialUploadForm({ unitId, onUpload, isUploading }: MaterialUp
           <button
             type="submit"
             className="btn btn--primary"
-            disabled={!file || isUploading}
+            disabled={!file || isUploading || (hasOutcomes && selectedOutcomeIds.length === 0)}
             aria-busy={isUploading}
           >
             {isUploading ? 'Subiendo material…' : 'Subir material'}

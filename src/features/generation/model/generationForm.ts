@@ -9,9 +9,20 @@ export interface GenerationForm {
   resourceTypes: string[];
   quantity: number;
   outcomeId: string;
+  audience: string;
+  competency: string;
 }
 
-export const initialGenerationForm: GenerationForm = { mode: 'sequence', resourceTypes: [], quantity: 1, outcomeId: '' };
+export const maxGenerationContextLength = 200;
+
+export const initialGenerationForm: GenerationForm = {
+  mode: 'sequence',
+  resourceTypes: [],
+  quantity: 1,
+  outcomeId: '',
+  audience: '',
+  competency: '',
+};
 
 /** Al pasar a modo individual se conserva solo el primer tipo elegido. */
 export function changeMode(form: GenerationForm, mode: GenerationMode): GenerationForm {
@@ -37,6 +48,8 @@ export function generationRequestBody(form: GenerationForm, unitId: string, cata
     resourceTypes: [...new Set(form.resourceTypes)].sort((a, b) => order(a) - order(b)),
     quantity: form.quantity,
     outcomeId: form.outcomeId || null,
+    audience: form.audience.trim() || undefined,
+    competency: form.competency.trim() || undefined,
   };
 }
 

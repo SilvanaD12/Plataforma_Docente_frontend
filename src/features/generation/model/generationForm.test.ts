@@ -41,14 +41,35 @@ describe('Formulario de generación', () => {
   });
 
   it('arma el cuerpo del pedido en orden 5E, sin repetidos y con el resultado opcional', () => {
-    const form = { mode: 'sequence' as const, resourceTypes: ['item_opcion_multiple', 'pregunta_detonante', 'glosario', 'glosario'], quantity: 3, outcomeId: '' };
+    const form = {
+      ...initialGenerationForm,
+      resourceTypes: ['item_opcion_multiple', 'pregunta_detonante', 'glosario', 'glosario'],
+      quantity: 3,
+    };
     const body = generationRequestBody(form, 'unidad-1', catalog);
     expect(body).toEqual({
       mode: 'sequence', unitId: 'unidad-1', resourceTypes: ['pregunta_detonante', 'glosario', 'item_opcion_multiple'],
       quantity: 3, outcomeId: null,
     });
     expect(generationFormProblem(body)).toBeNull();
+    expect(JSON.parse(JSON.stringify(body))).not.toHaveProperty('audience');
+    expect(JSON.parse(JSON.stringify(body))).not.toHaveProperty('competency');
     expect(generationRequestBody({ ...form, outcomeId: 'ra-1' }, 'unidad-1', catalog).outcomeId).toBe('ra-1');
+  });
+
+  it('envía audiencia y competencia junto al resultado de aprendizaje', () => {
+    const form = {
+      ...initialGenerationForm,
+      resourceTypes: ['glosario'],
+      outcomeId: 'ra-1',
+      audience: '  Estudiantes de tercer ciclo  ',
+      competency: '  Compara protocolos de transporte  ',
+    };
+    expect(generationRequestBody(form, 'unidad-1', catalog)).toMatchObject({
+      outcomeId: 'ra-1',
+      audience: 'Estudiantes de tercer ciclo',
+      competency: 'Compara protocolos de transporte',
+    });
   });
 
   it('explica qué falta antes de enviar', () => {

@@ -6,6 +6,7 @@ export type GenerationErrorKind =
   | 'noMaterial'
   | 'invalidOutcome'
   | 'invalidSequence'
+  | 'incompatibleModality'
   | 'unitNotFound'
   | 'requestNotFound'
   /** 404 sin `code`: no se sabe si falta la unidad o el pedido. */
@@ -29,6 +30,7 @@ const kindsByCode: Record<string, GenerationErrorKind> = {
   NO_PROCESSED_MATERIAL: 'noMaterial',
   INVALID_OUTCOME: 'invalidOutcome',
   INVALID_SEQUENCE: 'invalidSequence',
+  RESOURCE_TYPE_NOT_IN_MODALITY: 'incompatibleModality',
   UNIT_NOT_FOUND: 'unitNotFound',
   GENERATION_REQUEST_NOT_FOUND: 'requestNotFound',
 };

@@ -2,14 +2,14 @@ import { useState, type FormEvent } from 'react';
 import type { Unit } from '../../../shared/types/courses';
 import type { ResourceTypesState } from '../hooks/useResourceTypes';
 import {
-  changeMode, generationFormProblem, generationRequestBody, initialGenerationForm, toggleType,
+  changeModality, changeMode, generationFormProblem, generationRequestBody, initialGenerationForm, toggleType,
   maxGenerationContextLength, type GenerationForm as GenerationFormValue,
 } from '../model/generationForm';
 import {
-  maxQuantity, maxSequenceTypes, minQuantity, stageLabel,
+  maxQuantity, maxSequenceTypes, minQuantity, resourceModalities, stageLabel,
   type GenerationMode, type StartGenerationRequest,
 } from '../model/generationRequest';
-import { typesByStage } from '../model/resourceTypes';
+import { hasModalityCatalog, typesByStage, typesForModality } from '../model/resourceTypes';
 import '../generation.css';
 
 interface GenerationFormProps {
@@ -32,12 +32,20 @@ export function GenerationForm({ unit, catalog, submitting = false, error, onSub
   const [form, setForm] = useState(initialValue);
   const [problem, setProblem] = useState('');
   const sequence = form.mode === 'sequence';
-  const full = sequence && form.resourceTypes.length >= maxSequenceTypes;
+  const supportsModalities = hasModalityCatalog(catalog.types);
+  const visibleTypes = supportsModalities
+    ? typesForModality(catalog.types, form.modality)
+    : catalog.types;
+  const visibleIds = new Set(visibleTypes.map((type) => type.id));
+  const selection = supportsModalities ? form.resourceTypes.filter((id) => visibleIds.has(id)) : form.resourceTypes;
+  const needsType = supportsModalities && selection.length === 0;
+  const cannotSubmit = submitting || catalog.loading || catalog.types.length === 0 || needsType;
+  const full = sequence && selection.length >= maxSequenceTypes;
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitting) return;
-    const body = generationRequestBody(form, unit.id, catalog.types);
+    if (cannotSubmit) return;
+    const body = generationRequestBody({ ...form, resourceTypes: selection }, unit.id, catalog.types);
     const found = generationFormProblem(body);
     setProblem(found ?? '');
     if (!found) onSubmit(body);
@@ -65,11 +73,24 @@ export function GenerationForm({ unit, catalog, submitting = false, error, onSub
         </div>
       </fieldset>
 
+      {supportsModalities && (
+        <label className="field">
+          <span className="field__label">Modalidad</span>
+          <select className="input" name="modality" value={form.modality} disabled={submitting || catalog.loading}
+            onChange={(event) => {
+              const modality = resourceModalities.find((value) => value === event.target.value);
+              if (modality) update(changeModality(form, modality, catalog.types));
+            }}>
+            {resourceModalities.map((modality) => <option key={modality} value={modality}>{modality}</option>)}
+          </select>
+        </label>
+      )}
+
       <fieldset className="generation-fieldset" disabled={submitting} aria-describedby="generation-types-hint">
         <legend className="field__label">{sequence ? 'Tipos de recurso' : 'Tipo de recurso'}</legend>
         <span className="field__hint" id="generation-types-hint">
           {sequence
-            ? `Elegidos: ${form.resourceTypes.length} de ${maxSequenceTypes}. Se generan en orden 5E.`
+            ? `Elegidos: ${selection.length} de ${maxSequenceTypes}. Se generan en orden 5E.`
             : 'Elige un tipo de recurso.'}
         </span>
         {catalog.loading && <p className="muted" role="status">Cargando los tipos de recurso…</p>}
@@ -79,12 +100,12 @@ export function GenerationForm({ unit, catalog, submitting = false, error, onSub
             <button className="btn" type="button" onClick={catalog.reload}>Reintentar</button>
           </div>
         )}
-        {typesByStage(catalog.types).map(({ stage, types }) => (
+        {typesByStage(visibleTypes).map(({ stage, types }) => (
           <div className="stack generation-stage" key={stage}>
             <p className="overline">{stageLabel(stage)}</p>
             <div className="generation-choices">
               {types.map((type) => {
-                const checked = form.resourceTypes.includes(type.id);
+                const checked = selection.includes(type.id);
                 return (
                   <label className="generation-choice" key={type.id}>
                     <input
@@ -113,6 +134,10 @@ export function GenerationForm({ unit, catalog, submitting = false, error, onSub
           </select>
           <span className="field__hint">La misma cantidad para cada tipo elegido.</span>
         </label>
+      </div>
+
+      <fieldset className="generation-fieldset" disabled={submitting}>
+        <legend className="field__label">Contexto</legend>
         <label className="field">
           <span className="field__label">Resultado de aprendizaje (opcional)</span>
           <select className="input" name="outcomeId" value={form.outcomeId} disabled={submitting || unit.outcomes.length === 0}
@@ -123,27 +148,31 @@ export function GenerationForm({ unit, catalog, submitting = false, error, onSub
             ))}
           </select>
         </label>
-      </div>
-
-      <div className="generation-context">
-        <label className="field">
-          <span className="field__label">Audiencia (opcional)</span>
-          <input className="input" type="text" name="audience" value={form.audience}
-            maxLength={maxGenerationContextLength} disabled={submitting}
-            onChange={(event) => update({ ...form, audience: event.target.value })} />
-        </label>
-        <label className="field">
-          <span className="field__label">Competencia (opcional)</span>
-          <input className="input" type="text" name="competency" value={form.competency}
-            maxLength={maxGenerationContextLength} disabled={submitting}
-            onChange={(event) => update({ ...form, competency: event.target.value })} />
-        </label>
-      </div>
+        <div className="generation-context">
+          <label className="field">
+            <span className="field__label">Audiencia (opcional)</span>
+            <input className="input" type="text" name="audience" value={form.audience}
+              maxLength={maxGenerationContextLength} disabled={submitting}
+              onChange={(event) => update({ ...form, audience: event.target.value })} />
+          </label>
+          <label className="field">
+            <span className="field__label">Competencia (opcional)</span>
+            <input className="input" type="text" name="competency" value={form.competency}
+              maxLength={maxGenerationContextLength} disabled={submitting}
+              onChange={(event) => update({ ...form, competency: event.target.value })} />
+          </label>
+        </div>
+      </fieldset>
 
       {message && <p className="alert alert--warn" role="alert">{message}</p>}
       <div>
+        {needsType && (
+          <p className="field__hint" id="generation-modality-hint" role="status">
+            {visibleTypes.length ? 'Elige un tipo de recurso compatible con esta modalidad para generar.' : 'Esta modalidad todavía no tiene tipos disponibles.'}
+          </p>
+        )}
         <button className="btn btn--primary" type="submit" aria-busy={submitting}
-          disabled={submitting || catalog.loading || catalog.types.length === 0}>
+          aria-describedby={needsType ? 'generation-modality-hint' : undefined} disabled={cannotSubmit}>
           {submitting ? 'Enviando…' : sequence ? 'Generar secuencia' : 'Generar recurso'}
         </button>
       </div>

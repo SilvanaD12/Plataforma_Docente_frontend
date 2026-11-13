@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  changeMode, generationFormProblem, generationRequestBody, initialGenerationForm, toggleType,
+  changeModality, changeMode, generationFormProblem, generationRequestBody, initialGenerationForm, toggleType,
 } from './generationForm';
 import { typesByStage, typeName, type ResourceTypeInfo } from './resourceTypes';
 
@@ -70,6 +70,21 @@ describe('Formulario de generación', () => {
       audience: 'Estudiantes de tercer ciclo',
       competency: 'Compara protocolos de transporte',
     });
+  });
+
+  it('retains compatible types and sends the selected modality', () => {
+    const modalitiesCatalog = catalog.map((item): ResourceTypeInfo => ({
+      ...item, modalities: item.id === 'item_opcion_multiple' ? ['Textual', 'Gamificado'] : ['Textual'],
+    }));
+    const initial = { ...initialGenerationForm, resourceTypes: ['glosario', 'item_opcion_multiple'] };
+    expect(generationRequestBody(initial, 'unidad-1', modalitiesCatalog).modalities).toEqual(['Textual']);
+    const form = changeModality(initial, 'Gamificado', modalitiesCatalog);
+    expect(form.resourceTypes).toEqual(['item_opcion_multiple']);
+    expect(generationRequestBody(form, 'unidad-1', modalitiesCatalog)).toMatchObject({
+      modalities: ['Gamificado'], resourceTypes: ['item_opcion_multiple'],
+    });
+    expect(changeModality(form, 'Multimedia', modalitiesCatalog).resourceTypes).toEqual([]);
+    expect(generationRequestBody(initial, 'unidad-1', catalog).modalities).toBeUndefined();
   });
 
   it('explica qué falta antes de enviar', () => {

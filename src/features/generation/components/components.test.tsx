@@ -6,7 +6,7 @@ import type { GenerationRequestStatus, GenerationStep } from '../model/generatio
 import type { ResourceTypeInfo } from '../model/resourceTypes';
 import { FallbackNotices } from './FallbackNotices';
 import { GenerationForm } from './GenerationForm';
-import { initialGenerationForm } from '../model/generationForm';
+import { changeModality, initialGenerationForm } from '../model/generationForm';
 import { GenerationProgress } from './GenerationProgress';
 import type { GenerationError } from '../model/generationErrors';
 import { StartErrorNotice } from '../pages/GenerationPage';
@@ -67,6 +67,42 @@ describe('Formulario de generación', () => {
     expect(full).toContain('Elegidos: 8 de 8');
     expect(full).toMatch(/<input type="checkbox" name="resourceTypes" disabled="" value="item_opcion_multiple"\/>/);
     expect(full).toMatch(/<input type="checkbox" name="resourceTypes" checked="" value="pregunta_detonante"\/>/);
+  });
+
+  it('filters the modality catalog and disables submission without a compatible selection', () => {
+    const filteredCatalog = { ...catalog, types: [
+      { ...types[0], modalities: ['Textual'] },
+      { ...types[1], modalities: ['Gamificado'] },
+    ] satisfies ResourceTypeInfo[] };
+    const html = render(<GenerationForm unit={unit} catalog={filteredCatalog} onSubmit={() => undefined}
+      initialValue={{ ...initialGenerationForm, modality: 'Gamificado' }} />);
+    expect(html).toContain('name="modality"');
+    expect(html).toContain('Contexto</legend>');
+    expect(html).toContain('Ítem de opción múltiple');
+    expect(html).not.toContain('Pregunta detonante');
+    expect(html).toContain('Elige un tipo de recurso compatible');
+    expect(html).toMatch(/type="submit"[^>]*disabled=""/);
+  });
+
+  it('keeps the multiple-choice selection when switching to Gamificado', () => {
+    const modalityCatalog = { ...catalog, types: [
+      { ...types[0], modalities: ['Textual'] },
+      { ...types[1], modalities: ['Textual', 'Gamificado'] },
+    ] satisfies ResourceTypeInfo[] };
+    const textual = { ...initialGenerationForm, resourceTypes: types.map((type) => type.id) };
+    const gamified = changeModality(textual, 'Gamificado', modalityCatalog.types);
+    const html = render(<GenerationForm unit={unit} catalog={modalityCatalog} onSubmit={() => undefined}
+      initialValue={gamified} />);
+    expect(html).toContain('Elegidos: 1 de 8');
+    expect(html).toMatch(/name="resourceTypes" checked="" value="item_opcion_multiple"/);
+    expect(html).not.toContain('Pregunta detonante');
+    expect(html).not.toMatch(/type="submit"[^>]*disabled=""/);
+
+    const kinesthetic = changeModality(gamified, 'Kinestésico', modalityCatalog.types);
+    const empty = render(<GenerationForm unit={unit} catalog={modalityCatalog} onSubmit={() => undefined}
+      initialValue={kinesthetic} />);
+    expect(empty).toContain('Esta modalidad todavía no tiene tipos disponibles.');
+    expect(empty).toMatch(/type="submit"[^>]*disabled=""/);
   });
 
   it('avisa si el catálogo no cargó y no permite enviar', () => {

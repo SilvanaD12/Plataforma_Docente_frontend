@@ -6,6 +6,9 @@ export type Stage = typeof stages[number];
 
 export type RequestStatus = 'queued' | 'running' | 'succeeded' | 'partially_succeeded' | 'failed' | 'interrupted';
 export type StepStatus = 'pending' | 'running' | 'succeeded' | 'rejected' | 'failed' | 'interrupted';
+export const resourceModalities = ['Textual', 'Gamificado', 'Multimedia', 'Kinestésico'] as const;
+export type ResourceModality = typeof resourceModalities[number];
+
 export type GenerationMode = 'individual' | 'sequence';
 export type RequestMode = GenerationMode | 'regeneration';
 export type RetrievalMode = 'hybrid' | 'bm25_fallback';
@@ -31,7 +34,7 @@ export interface StartGenerationRequest {
   instructions?: string;
   audience?: string;
   competency?: string;
-  modalities?: 'Textual'[];
+  modalities?: [ResourceModality];
 }
 
 export interface Problem {

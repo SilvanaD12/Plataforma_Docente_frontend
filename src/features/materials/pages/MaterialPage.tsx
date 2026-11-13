@@ -239,7 +239,7 @@ export function MaterialPageContent({ unit, token, onSessionExpired }: MaterialP
       )}
 
       <MaterialUploadForm
-        unitId={unit.id}
+        unit={unit}
         onUpload={handleUpload}
         isUploading={isUploading}
       />

@@ -47,7 +47,7 @@ function GenerationView({ course, unit, token, onSessionExpired }: UnitContext) 
       )}
 
       {!running && !tracking.recovering && (
-        <GenerationForm unit={unit} catalog={catalog} submitting={starting.submitting} onSubmit={(body) => void starting.start(body)} />
+        <GenerationForm unit={unit} catalog={catalog} token={token} onSessionExpired={onSessionExpired} submitting={starting.submitting} onSubmit={(body) => void starting.start(body)} />
       )}
 
       {starting.error && (

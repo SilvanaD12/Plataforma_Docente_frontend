@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
-  changeModality, changeMode, generationFormProblem, generationRequestBody, initialGenerationForm, toggleType,
+  applyInterpretationDraft,
+  changeModality,
+  changeMode,
+  generationFormProblem,
+  generationRequestBody,
+  generationSubmission,
+  initialGenerationForm,
+  resourceModalityWarning,
+  toggleType,
 } from './generationForm';
 import { typesByStage, typeName, type ResourceTypeInfo } from './resourceTypes';
 
@@ -95,5 +103,59 @@ describe('Formulario de generación', () => {
     expect(generationFormProblem({ ...body, resourceTypes: Array.from({ length: 9 }, (_, index) => 't' + index) })).toMatch(/hasta 8/);
     expect(generationFormProblem({ ...body, quantity: 6 })).toMatch(/entre 1 y 5/);
     expect(generationFormProblem({ ...body, quantity: 0 })).toMatch(/entre 1 y 5/);
+  });
+});
+
+describe('Borrador del chat de Generación', () => {
+  const form = {
+    ...initialGenerationForm,
+    resourceTypes: ['glosario'],
+    quantity: 3,
+    outcomeId: 'ra-1',
+    audience: 'Tercer ciclo',
+    competency: 'Compara protocolos',
+    instructions: 'Usa ejemplos breves',
+  };
+
+  const modalitiesCatalog: ResourceTypeInfo[] = [
+    { ...type('glosario', 'explain'), name: 'Glosario', modalities: ['Textual'] },
+    { ...type('imagen_ilustrativa', 'explore'), name: 'Imagen ilustrativa', modalities: ['Multimedia'] },
+  ];
+
+  it('conserva los campos omitidos', () => {
+    const draft = { unitId: 'unidad-1', resourceTypes: ['glosario'], quantity: 2 };
+    expect(applyInterpretationDraft(form, draft)).toEqual({ ...form, quantity: 2 });
+  });
+
+  it('limpia el resultado cuando outcomeId es null', () => {
+    const draft = { unitId: 'unidad-1', resourceTypes: ['glosario'], outcomeId: null };
+    expect(applyInterpretationDraft(form, draft).outcomeId).toBe('');
+  });
+
+  it('conserva los tipos seleccionados cuando el borrador no identifica ninguno', () => {
+    const draft = { unitId: 'unidad-1', resourceTypes: [] };
+    expect(applyInterpretationDraft(form, draft).resourceTypes).toEqual(['glosario']);
+  });
+
+  it('avisa qué tipo queda fuera y bloquea la vista previa de un pedido parcial', () => {
+    const draft = { unitId: 'unidad-1', resourceTypes: ['glosario', 'imagen_ilustrativa'] };
+    const mixed = applyInterpretationDraft(form, draft);
+    const warning = resourceModalityWarning(mixed, modalitiesCatalog);
+
+    expect(warning).toContain('Textual: Imagen ilustrativa');
+    expect(generationSubmission(mixed, 'unidad-1', modalitiesCatalog).problem).toBe(warning);
+    expect(generationSubmission(form, 'unidad-1', modalitiesCatalog).problem).toBeNull();
+  });
+
+  it('muestra la incompatibilidad de una imagen sola y la resuelve al elegir Multimedia', () => {
+    const draft = { unitId: 'unidad-1', resourceTypes: ['imagen_ilustrativa'] };
+    const image = applyInterpretationDraft(form, draft);
+
+    expect(generationSubmission(image, 'unidad-1', modalitiesCatalog).problem)
+      .toContain('Textual: Imagen ilustrativa');
+
+    const corrected = generationSubmission({ ...image, modality: 'Multimedia' }, 'unidad-1', modalitiesCatalog);
+    expect(corrected.problem).toBeNull();
+    expect(corrected.body.resourceTypes).toEqual(['imagen_ilustrativa']);
   });
 });

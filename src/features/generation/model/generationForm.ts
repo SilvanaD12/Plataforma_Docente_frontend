@@ -1,8 +1,8 @@
 import {
   maxQuantity, maxSequenceTypes, minQuantity,
-  type GenerationMode, type ResourceModality, type StartGenerationRequest,
+  type GenerationInterpretationDraft, type GenerationMode, type ResourceModality, type StartGenerationRequest,
 } from './generationRequest';
-import { hasModalityCatalog, typesForModality, type ResourceTypeInfo } from './resourceTypes';
+import { hasModalityCatalog, typeName, typesForModality, type ResourceTypeInfo } from './resourceTypes';
 
 export interface GenerationForm {
   mode: GenerationMode;
@@ -12,6 +12,7 @@ export interface GenerationForm {
   outcomeId: string;
   audience: string;
   competency: string;
+  instructions: string;
 }
 
 export const maxGenerationContextLength = 200;
@@ -24,7 +25,25 @@ export const initialGenerationForm: GenerationForm = {
   outcomeId: '',
   audience: '',
   competency: '',
+  instructions: '',
 };
+
+export function applyInterpretationDraft(
+  form: GenerationForm,
+  draft: GenerationInterpretationDraft,
+): GenerationForm {
+  return {
+    ...form,
+    mode: draft.mode ?? form.mode,
+    modality: draft.modalities?.[0] ?? form.modality,
+    resourceTypes: draft.resourceTypes.length ? draft.resourceTypes : form.resourceTypes,
+    quantity: draft.quantity ?? form.quantity,
+    outcomeId: draft.outcomeId === undefined ? form.outcomeId : draft.outcomeId ?? '',
+    audience: draft.audience ?? form.audience,
+    competency: draft.competency ?? form.competency,
+    instructions: draft.instructions ?? form.instructions,
+  };
+}
 
 /** Al pasar a modo individual se conserva solo el primer tipo elegido. */
 export function changeMode(form: GenerationForm, mode: GenerationMode): GenerationForm {
@@ -62,10 +81,19 @@ export function selectedResourceTypes(form: GenerationForm, catalog: ResourceTyp
   return form.resourceTypes.filter((id) => visibleIds.has(id));
 }
 
+export function resourceModalityWarning(form: GenerationForm, catalog: ResourceTypeInfo[]) {
+  const compatible = new Set(selectedResourceTypes(form, catalog));
+  const incompatible = form.resourceTypes.filter((id) => !compatible.has(id));
+  if (incompatible.length === 0) return null;
+
+  const names = incompatible.map((id) => typeName(catalog, id)).join(', ');
+  return `Tipos incompatibles con la modalidad ${form.modality}: ${names}. Cambia la modalidad o descarta esos tipos para continuar.`;
+}
+
 /** Cuerpo y problema del pedido tal como se arman al pulsar «Generar». La vista previa muestra y confirma este cuerpo. */
 export function generationSubmission(form: GenerationForm, unitId: string, catalog: ResourceTypeInfo[]) {
   const body = generationRequestBody({ ...form, resourceTypes: selectedResourceTypes(form, catalog) }, unitId, catalog);
-  return { body, problem: generationFormProblem(body) };
+  return { body, problem: resourceModalityWarning(form, catalog) ?? generationFormProblem(body) };
 }
 
 export function generationRequestBody(form: GenerationForm, unitId: string, catalog: ResourceTypeInfo[]): StartGenerationRequest {
@@ -77,6 +105,7 @@ export function generationRequestBody(form: GenerationForm, unitId: string, cata
     outcomeId: form.outcomeId || null,
     audience: form.audience.trim() || undefined,
     competency: form.competency.trim() || undefined,
+    instructions: form.instructions.trim() || undefined,
     // Older catalog responses omit modalities. Keep their existing request shape.
     ...(hasModalityCatalog(catalog) ? { modalities: [form.modality] } : {}),
   };

@@ -113,8 +113,7 @@ describe('Confirmación desde la vista previa', () => {
     const cases: [GenerationForm, ResourceTypeInfo[]][] = [
       [form({ resourceTypes: ['verdadero_falso', 'pregunta_detonante', 'glosario'], quantity: 3, outcomeId: 'ra-1', audience: ' Tercer ciclo ' }), catalog],
       [form({ mode: 'individual', resourceTypes: ['caso_aplicado'], competency: 'Analiza casos' }), catalog],
-      // Con modalidad, los tipos incompatibles que quedaron marcados no se envían.
-      [form({ modality: 'Gamificado', resourceTypes: ['glosario', 'verdadero_falso', 'item_opcion_multiple'] }), modalities],
+      [form({ modality: 'Gamificado', resourceTypes: ['verdadero_falso', 'item_opcion_multiple'] }), modalities],
     ];
 
     for (const [value, types] of cases) {

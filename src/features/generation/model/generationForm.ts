@@ -1,6 +1,6 @@
 import {
   maxQuantity, maxSequenceTypes, minQuantity,
-  type GenerationMode, type ResourceModality, type StartGenerationRequest,
+  type GenerationInterpretationDraft, type GenerationMode, type ResourceModality, type StartGenerationRequest,
 } from './generationRequest';
 import { hasModalityCatalog, typesForModality, type ResourceTypeInfo } from './resourceTypes';
 
@@ -12,6 +12,7 @@ export interface GenerationForm {
   outcomeId: string;
   audience: string;
   competency: string;
+  instructions: string;
 }
 
 export const maxGenerationContextLength = 200;
@@ -24,7 +25,25 @@ export const initialGenerationForm: GenerationForm = {
   outcomeId: '',
   audience: '',
   competency: '',
+  instructions: '',
 };
+
+export function applyInterpretationDraft(
+  form: GenerationForm,
+  draft: GenerationInterpretationDraft,
+): GenerationForm {
+  return {
+    ...form,
+    mode: draft.mode ?? form.mode,
+    modality: draft.modalities?.[0] ?? form.modality,
+    resourceTypes: draft.resourceTypes.length ? draft.resourceTypes : form.resourceTypes,
+    quantity: draft.quantity ?? form.quantity,
+    outcomeId: draft.outcomeId === undefined ? form.outcomeId : draft.outcomeId ?? '',
+    audience: draft.audience ?? form.audience,
+    competency: draft.competency ?? form.competency,
+    instructions: draft.instructions ?? form.instructions,
+  };
+}
 
 /** Al pasar a modo individual se conserva solo el primer tipo elegido. */
 export function changeMode(form: GenerationForm, mode: GenerationMode): GenerationForm {
@@ -77,6 +96,7 @@ export function generationRequestBody(form: GenerationForm, unitId: string, cata
     outcomeId: form.outcomeId || null,
     audience: form.audience.trim() || undefined,
     competency: form.competency.trim() || undefined,
+    instructions: form.instructions.trim() || undefined,
     // Older catalog responses omit modalities. Keep their existing request shape.
     ...(hasModalityCatalog(catalog) ? { modalities: [form.modality] } : {}),
   };

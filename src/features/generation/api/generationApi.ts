@@ -1,6 +1,6 @@
 import { request, requestWithStatus } from '../../../shared/api/httpClient';
 import type {
-  GenerationRequestStatus, GenerationRequestSummary, StartGenerationRequest,
+  GenerationInterpretation, GenerationRequestStatus, GenerationRequestSummary, StartGenerationRequest,
 } from '../model/generationRequest';
 
 /** `created` es true con 202 (pedido nuevo) y false con 200 (misma clave y mismo cuerpo: pedido existente). */
@@ -18,4 +18,13 @@ export function getGenerationRequest(token: string, requestId: string) {
 export function listGenerationRequests(token: string, unitId: string, active: boolean) {
   const query = new URLSearchParams({ unitId, active: String(active) });
   return request<GenerationRequestSummary[]>('/generation-requests?' + query, 'GET', undefined, token);
+}
+
+export function interpretGenerationRequest(token: string, unitId: string, message: string) {
+  return request<GenerationInterpretation>(
+    '/generation-requests/interpret',
+    'POST',
+    { unitId, message },
+    token,
+  );
 }

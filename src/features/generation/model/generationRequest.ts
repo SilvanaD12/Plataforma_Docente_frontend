@@ -37,6 +37,32 @@ export interface StartGenerationRequest {
   modalities?: [ResourceModality];
 }
 
+export interface GenerationInterpretationDraft {
+  unitId: string;
+  resourceTypes: string[];
+  mode?: GenerationMode | null;
+  quantity?: number | null;
+  modalities?: [ResourceModality] | null;
+  outcomeId?: string | null;
+  audience?: string | null;
+  competency?: string | null;
+  instructions?: string | null;
+}
+
+export interface GenerationInterpretationIssue {
+  field: keyof Omit<GenerationInterpretationDraft, 'mode'>;
+  kind: 'missing' | 'ambiguous' | 'not_allowed';
+  message: string;
+  options: { value: string | number; label: string }[];
+}
+
+export interface GenerationInterpretation {
+  draft: GenerationInterpretationDraft;
+  stages: { resourceType: string; stage: Stage }[];
+  issues: GenerationInterpretationIssue[];
+  suggestedUnit?: { unitId: string; label: string } | null;
+}
+
 export interface Problem {
   code: string;
   message: string;

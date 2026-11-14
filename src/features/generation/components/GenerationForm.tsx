@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { errorMessage } from '../../../shared/api/httpClient';
 import type { Unit } from '../../../shared/types/courses';
+import { interpretGenerationRequest } from '../api/generationApi';
 import type { ResourceTypesState } from '../hooks/useResourceTypes';
+import { isSessionExpired } from '../model/generationErrors';
 import {
-  changeModality, changeMode, generationSubmission, initialGenerationForm, selectedResourceTypes, toggleType,
+  applyInterpretationDraft, changeModality, changeMode, generationSubmission, initialGenerationForm, selectedResourceTypes, toggleType,
   maxGenerationContextLength, type GenerationForm as GenerationFormValue,
 } from '../model/generationForm';
 import {
   maxQuantity, maxSequenceTypes, minQuantity, resourceModalities, stageLabel,
-  type GenerationMode, type StartGenerationRequest,
+  type GenerationInterpretation, type GenerationMode, type StartGenerationRequest,
 } from '../model/generationRequest';
 import { previewFromRequest } from '../model/generationPreview';
 import { hasModalityCatalog, typesByStage, typesForModality } from '../model/resourceTypes';
@@ -17,6 +20,8 @@ import '../generation.css';
 interface GenerationFormProps {
   unit: Unit;
   catalog: ResourceTypesState;
+  token?: string;
+  onSessionExpired?: (token: string) => void;
   submitting?: boolean;
   error?: string;
   onSubmit: (body: StartGenerationRequest) => void;
@@ -30,14 +35,21 @@ const modes: { value: GenerationMode; label: string; hint: string }[] = [
 
 const quantities = Array.from({ length: maxQuantity - minQuantity + 1 }, (_, index) => minQuantity + index);
 
-export function GenerationForm({ unit, catalog, submitting = false, error, onSubmit, initialValue = initialGenerationForm }: GenerationFormProps) {
+export function GenerationForm({
+  unit, catalog, token, onSessionExpired, submitting = false, error, onSubmit,
+  initialValue = initialGenerationForm,
+}: GenerationFormProps) {
   const [form, setForm] = useState(initialValue);
   const [problem, setProblem] = useState('');
+  const [chatMessage, setChatMessage] = useState('');
+  const [interpreting, setInterpreting] = useState(false);
+  const [interpretation, setInterpretation] = useState<GenerationInterpretation | null>(null);
+  const [chatError, setChatError] = useState('');
   // Cuerpo armado al pulsar «Generar». Mientras existe, se muestra la vista previa y el formulario no se edita.
   const [pending, setPending] = useState<StartGenerationRequest | null>(null);
   const submitButton = useRef<HTMLButtonElement>(null);
   const returnFocus = useRef(false);
-  const locked = submitting || pending !== null;
+  const locked = submitting || interpreting || pending !== null;
   const sequence = form.mode === 'sequence';
   const supportsModalities = hasModalityCatalog(catalog.types);
   const visibleTypes = supportsModalities
@@ -77,9 +89,77 @@ export function GenerationForm({ unit, catalog, submitting = false, error, onSub
     setProblem('');
   }
 
+  async function interpret(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const text = chatMessage.trim();
+    if (!token || !text || locked) return;
+
+    setInterpreting(true);
+    setChatError('');
+    setInterpretation(null);
+    try {
+      const result = await interpretGenerationRequest(token, unit.id, text);
+      setForm((current) => applyInterpretationDraft(current, result.draft));
+      setProblem('');
+      setInterpretation(result);
+    } catch (error) {
+      if (isSessionExpired(error) && onSessionExpired) onSessionExpired(token);
+      else setChatError(errorMessage(error));
+    } finally {
+      setInterpreting(false);
+    }
+  }
+
   const message = problem || error;
   return (
     <>
+      {token && (
+        <form className="card" aria-labelledby="generation-chat-title" onSubmit={interpret}>
+          <h2 className="h2" id="generation-chat-title">Chat de Generación</h2>
+          <p>Unidad activa: {unit.title}</p>
+          <label className="field">
+            <span className="field__label">¿Qué recursos quieres generar?</span>
+            <textarea
+              className="input"
+              value={chatMessage}
+              maxLength={2000}
+              disabled={locked}
+              onChange={(event) => setChatMessage(event.target.value)}
+            />
+          </label>
+          <button className="btn" type="submit" disabled={locked || !chatMessage.trim()}>
+            {interpreting ? 'Interpretando…' : 'Interpretar'}
+          </button>
+          {chatError && <p className="alert alert--warn" role="alert">{chatError}</p>}
+          {interpretation && (
+            <div role="status">
+              {interpretation.suggestedUnit && (
+                <p>Unidad sugerida: {interpretation.suggestedUnit.label}. Se mantiene la unidad activa.</p>
+              )}
+              {interpretation.stages.length > 0 && (
+                <ul>
+                  {interpretation.stages.map(({ resourceType, stage }) => (
+                    <li key={resourceType}>
+                      {catalog.types.find((type) => type.id === resourceType)?.name ?? resourceType}
+                      {' · '}{stageLabel(stage)}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {interpretation.issues.length > 0 && (
+                <ul>
+                  {interpretation.issues.map((issue, index) => (
+                    <li key={`${issue.field}-${index}`}>
+                      {issue.message}
+                      {issue.options.length > 0 && ` Opciones: ${issue.options.map(({ label }) => label).join(', ')}.`}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </form>
+      )}
       <form className="card" aria-labelledby="generation-form-title" onSubmit={submit} noValidate>
         <h2 className="h2" id="generation-form-title">Nueva generación</h2>
         <fieldset className="generation-fieldset" disabled={locked}>
@@ -184,6 +264,17 @@ export function GenerationForm({ unit, catalog, submitting = false, error, onSub
                 onChange={(event) => update({ ...form, competency: event.target.value })} />
             </label>
           </div>
+          <label className="field">
+            <span className="field__label">Instrucciones (opcional)</span>
+            <textarea
+              className="input"
+              name="instructions"
+              value={form.instructions}
+              maxLength={500}
+              disabled={locked}
+              onChange={(event) => update({ ...form, instructions: event.target.value })}
+            />
+          </label>
         </fieldset>
 
         {message && <p className="alert alert--warn" role="alert">{message}</p>}

@@ -5,7 +5,8 @@ import { interpretGenerationRequest } from '../api/generationApi';
 import type { ResourceTypesState } from '../hooks/useResourceTypes';
 import { isSessionExpired } from '../model/generationErrors';
 import {
-  applyInterpretationDraft, changeModality, changeMode, generationSubmission, initialGenerationForm, selectedResourceTypes, toggleType,
+  applyInterpretationDraft, changeModality, changeMode, generationSubmission, initialGenerationForm, resourceModalityWarning,
+  selectedResourceTypes, toggleType,
   maxGenerationContextLength, type GenerationForm as GenerationFormValue,
 } from '../model/generationForm';
 import {
@@ -56,8 +57,10 @@ export function GenerationForm({
     ? typesForModality(catalog.types, form.modality)
     : catalog.types;
   const selection = selectedResourceTypes(form, catalog.types);
-  const needsType = supportsModalities && selection.length === 0;
-  const cannotSubmit = locked || catalog.loading || catalog.types.length === 0 || needsType;
+  const modalityWarning = resourceModalityWarning(form, catalog.types);
+  const needsType = supportsModalities && selection.length === 0 && !modalityWarning;
+  const cannotSubmit = locked || catalog.loading || catalog.types.length === 0
+    || needsType || Boolean(modalityWarning);
   const full = sequence && selection.length >= maxSequenceTypes;
 
   useEffect(() => {
@@ -181,11 +184,28 @@ export function GenerationForm({
             <select className="input" name="modality" value={form.modality} disabled={locked || catalog.loading}
               onChange={(event) => {
                 const modality = resourceModalities.find((value) => value === event.target.value);
-                if (modality) update(changeModality(form, modality, catalog.types));
+                if (!modality) return;
+                update(modalityWarning
+                  ? { ...form, modality }
+                  : changeModality(form, modality, catalog.types));
               }}>
               {resourceModalities.map((modality) => <option key={modality} value={modality}>{modality}</option>)}
             </select>
           </label>
+        )}
+
+        {modalityWarning && (
+          <div className="alert alert--warn" role="status">
+            <p>{modalityWarning}</p>
+            <button
+              className="btn"
+              type="button"
+              disabled={locked}
+              onClick={() => update({ ...form, resourceTypes: selection })}
+            >
+              Descartar tipos incompatibles
+            </button>
+          </div>
         )}
 
         <fieldset className="generation-fieldset" disabled={locked} aria-describedby="generation-types-hint">

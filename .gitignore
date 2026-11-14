@@ -3,3 +3,6 @@ dist/
 .env
 .env.local
 *.tsbuildinfo
+# Playwright (TA-002)
+playwright-report/
+test-results/

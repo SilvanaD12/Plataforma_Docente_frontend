@@ -43,16 +43,36 @@ export function toggleType(form: GenerationForm, id: string): GenerationForm {
   return { ...form, resourceTypes: [...form.resourceTypes, id] };
 }
 
-/** Ordena los tipos elegidos como el catálogo, que ya viene en orden 5E, igual que los ejecutará el servidor. */
-export function generationRequestBody(form: GenerationForm, unitId: string, catalog: ResourceTypeInfo[]): StartGenerationRequest {
+/**
+ * Quita repetidos y ordena los tipos como el catálogo, que ya viene en orden 5E, igual que los ejecutará el servidor.
+ * La usan el cuerpo del pedido y la vista previa, para que nunca muestren órdenes distintos.
+ */
+export function orderResourceTypes(ids: string[], catalog: ResourceTypeInfo[]) {
   const order = (id: string) => {
     const index = catalog.findIndex((type) => type.id === id);
     return index === -1 ? Number.MAX_SAFE_INTEGER : index;
   };
+  return [...new Set(ids)].sort((a, b) => order(a) - order(b));
+}
+
+/** Tipos elegidos que se envían: con catálogo de modalidades, solo los compatibles con la modalidad elegida. */
+export function selectedResourceTypes(form: GenerationForm, catalog: ResourceTypeInfo[]) {
+  if (!hasModalityCatalog(catalog)) return form.resourceTypes;
+  const visibleIds = new Set(typesForModality(catalog, form.modality).map((type) => type.id));
+  return form.resourceTypes.filter((id) => visibleIds.has(id));
+}
+
+/** Cuerpo y problema del pedido tal como se arman al pulsar «Generar». La vista previa muestra y confirma este cuerpo. */
+export function generationSubmission(form: GenerationForm, unitId: string, catalog: ResourceTypeInfo[]) {
+  const body = generationRequestBody({ ...form, resourceTypes: selectedResourceTypes(form, catalog) }, unitId, catalog);
+  return { body, problem: generationFormProblem(body) };
+}
+
+export function generationRequestBody(form: GenerationForm, unitId: string, catalog: ResourceTypeInfo[]): StartGenerationRequest {
   return {
     mode: form.mode,
     unitId,
-    resourceTypes: [...new Set(form.resourceTypes)].sort((a, b) => order(a) - order(b)),
+    resourceTypes: orderResourceTypes(form.resourceTypes, catalog),
     quantity: form.quantity,
     outcomeId: form.outcomeId || null,
     audience: form.audience.trim() || undefined,

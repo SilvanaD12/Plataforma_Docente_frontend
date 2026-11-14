@@ -8,6 +8,8 @@ import { FallbackNotices } from './FallbackNotices';
 import { GenerationForm } from './GenerationForm';
 import { changeModality, initialGenerationForm } from '../model/generationForm';
 import { GenerationProgress } from './GenerationProgress';
+import { GenerationPreview } from './GenerationPreview';
+import { previewFromRequest } from '../model/generationPreview';
 import type { GenerationError } from '../model/generationErrors';
 import { StartErrorNotice } from '../pages/GenerationPage';
 
@@ -222,5 +224,52 @@ describe('Avisos de respaldo', () => {
     const both = render(<FallbackNotices retrievalMode="bm25_fallback" steps={[ruleStep]} resourceTypes={types} />);
     expect(both).toContain('data-notice="retrieval"');
     expect(both).toContain('data-notice="generator"');
+  });
+});
+
+describe('Vista previa del pedido (HU-040)', () => {
+  const preview = previewFromRequest({
+    mode: 'sequence', unitId: 'unidad-1', resourceTypes: ['item_opcion_multiple', 'pregunta_detonante'], quantity: 3,
+    outcomeId: 'ra-1', audience: 'Tercer ciclo',
+  }, unit, types);
+  const html = (submitting = false) => render(
+    <GenerationPreview preview={preview} submitting={submitting} onConfirm={() => undefined} onEdit={() => undefined} />,
+  );
+
+  it('muestra una fila por paso en orden 5E, el contexto elegido y el total', () => {
+    const markup = html();
+    const rows = markup.match(/<tr><td>\d+<\/td><td>[^<]+<\/td><th scope="row">[^<]+<\/th><td>\d+<\/td><\/tr>/g);
+    expect(rows).toEqual([
+      '<tr><td>1</td><td>Enganchar</td><th scope="row">Pregunta detonante</th><td>3</td></tr>',
+      '<tr><td>2</td><td>Evaluar</td><th scope="row">Ítem de opción múltiple</th><td>3</td></tr>',
+    ]);
+    expect(markup).toContain('Unidad 1: Transporte');
+    expect(markup).toContain('Secuencia 5E');
+    expect(markup).toContain('<dt>Resultado de aprendizaje</dt><dd>RA1.1: Compara TCP y UDP.</dd>');
+    expect(markup).toContain('<dt>Audiencia</dt><dd>Tercer ciclo</dd>');
+    expect(markup).not.toContain('Competencia');
+    expect(markup).not.toContain('Instrucciones');
+    expect(markup).toContain('Total: 6 recursos');
+  });
+
+  it('tiene un encabezado enfocable y los dos botones reales', () => {
+    const markup = html();
+    expect(markup).toMatch(/<h2 class="h2" id="generation-preview-title" tabindex="-1">Revisa el pedido antes de generar<\/h2>/);
+    expect(markup).toContain('aria-labelledby="generation-preview-title"');
+    expect(markup).toMatch(/<button class="btn btn--primary" type="button" aria-busy="false">Confirmar y generar<\/button>/);
+    expect(markup).toMatch(/<button class="btn" type="button">Volver a editar<\/button>/);
+  });
+
+  it('bloquea ambos botones mientras se envía', () => {
+    const markup = html(true);
+    expect(markup).toMatch(/<button class="btn btn--primary" type="button" aria-busy="true" disabled="">Enviando…<\/button>/);
+    expect(markup).toMatch(/<button class="btn" type="button" disabled="">Volver a editar<\/button>/);
+  });
+
+  it('el formulario sigue mostrando «Generar» y no abre la vista previa al renderizarse', () => {
+    const markup = render(<GenerationForm unit={unit} catalog={catalog} onSubmit={() => undefined}
+      initialValue={{ ...initialGenerationForm, resourceTypes: ['pregunta_detonante'] }} />);
+    expect(markup).toContain('Generar secuencia');
+    expect(markup).not.toContain('Confirmar y generar');
   });
 });

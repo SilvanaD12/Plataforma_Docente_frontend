@@ -174,3 +174,61 @@
   border-color: var(--color-warn-soft);
   color: var(--color-ink);
 }
+
+/* HU-040 · Vista previa del pedido */
+
+.generation-preview__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  gap: var(--space-3) var(--space-5);
+  margin: 0;
+}
+
+.generation-preview__facts dt {
+  font-size: var(--text-overline-size);
+  line-height: var(--text-overline-lh);
+  letter-spacing: var(--text-overline-tracking);
+  text-transform: uppercase;
+  font-weight: var(--weight-semibold);
+  color: var(--color-muted);
+}
+
+.generation-preview__facts dd {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-ui-size);
+  line-height: var(--text-ui-lh);
+  overflow-wrap: anywhere;
+}
+
+.generation-preview__table-wrap {
+  overflow-x: auto;
+}
+
+.generation-preview__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-ui-size);
+  line-height: var(--text-ui-lh);
+}
+
+.generation-preview__table caption {
+  text-align: left;
+  padding-bottom: var(--space-2);
+}
+
+.generation-preview__table th,
+.generation-preview__table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.generation-preview__table thead th {
+  color: var(--color-muted);
+  font-weight: var(--weight-semibold);
+}
+
+.generation-preview__table tbody th {
+  font-weight: var(--weight-semibold);
+}

@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Link, NavLink, Outlet, useOutletContext, useParams } from 'react-router-dom';
 import type { UnitContext } from '../../../shared/types/courses';
 import type { CoursesContext } from '../../courses/pages/CoursesLayout';
@@ -41,7 +42,9 @@ export function UnitLayout() {
       <nav className="unit-tabs" aria-label="Secciones de la unidad">
         {tabs.map(({ path, label }) => <NavLink key={path} className="btn unit-tab" to={path} end>{label}</NavLink>)}
       </nav>
-      <Outlet context={context} />
+      <Suspense fallback={<p role="status">Cargando sección…</p>}>
+        <Outlet context={context} />
+      </Suspense>
     </div>
   );
 }

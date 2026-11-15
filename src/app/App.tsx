@@ -1,3 +1,4 @@
+import { lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthShell } from '../features/auth/components/AuthShell';
 import { useSession } from '../features/auth/hooks/useSession';
@@ -7,13 +8,14 @@ import { CourseDetailPage } from '../features/courses/pages/CourseDetailPage';
 import { CourseListPage } from '../features/courses/pages/CourseListPage';
 import { CoursesLayout } from '../features/courses/pages/CoursesLayout';
 import { DownloadsPage } from '../features/export/pages/DownloadsPage';
-import { ExportPage } from '../features/export/pages/ExportPage';
-import { GenerationPage } from '../features/generation/pages/GenerationPage';
-import { MaterialPage } from '../features/materials/pages/MaterialPage';
-import { ReviewPage } from '../features/review/pages/ReviewPage';
 import { UnitLayout } from '../features/units/pages/UnitLayout';
-import { UnitOverviewPage } from '../features/units/pages/UnitOverviewPage';
 import { TeacherWorkspace } from './TeacherWorkspace';
+
+const ExportPage = lazy(() => import('../features/export/pages/ExportPage').then((module) => ({ default: module.ExportPage })));
+const GenerationPage = lazy(() => import('../features/generation/pages/GenerationPage').then((module) => ({ default: module.GenerationPage })));
+const MaterialPage = lazy(() => import('../features/materials/pages/MaterialPage').then((module) => ({ default: module.MaterialPage })));
+const ReviewPage = lazy(() => import('../features/review/pages/ReviewPage').then((module) => ({ default: module.ReviewPage })));
+const UnitOverviewPage = lazy(() => import('../features/units/pages/UnitOverviewPage').then((module) => ({ default: module.UnitOverviewPage })));
 
 export function App() {
   const { session, checking, restoreError, openSession, closeSession } = useSession();

@@ -28,6 +28,8 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      - run: npm run check:bundle
+      - run: npm audit --audit-level=high
 
   # TA-011: el recorrido de Playwright de TA-002 (e2e/), con la API simulada. No usa claves ni secretos.
   e2e:

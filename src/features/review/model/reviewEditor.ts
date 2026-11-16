@@ -141,6 +141,11 @@ export function afterSaveSuccess(state: EditorState, saved: Resource): EditorSta
   return { saved, draft: saved, notice: saved.reviewReset ? RESET_NOTICE : null, error: null, conflict: false, pending: false };
 }
 
+export function afterApprovalSuccess(state: EditorState, saved: Resource): EditorState {
+  const next = afterSaveSuccess(state, saved);
+  return saved.status === 'aprobado' ? { ...next, notice: 'Recurso aprobado.' } : next;
+}
+
 /**
  * El reintento no cambia la versión. Si al terminar hay cambios sin guardar (respaldo de `canRetry`), se toma solo lo
  * que calculó el servidor y el borrador del docente se conserva.

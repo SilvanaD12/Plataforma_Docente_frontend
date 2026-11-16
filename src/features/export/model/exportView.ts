@@ -22,7 +22,7 @@ export const EXPORT_FORMATS: ExportFormat[] = [
   {
     id: 'moodle_xml',
     title: 'Moodle',
-    description: 'Banco de preguntas con los ítems de opción múltiple.',
+    description: 'Banco de preguntas con opción múltiple, verdadero o falso y emparejamiento.',
     extension: 'xml',
     howTo: 'En Moodle: Banco de preguntas › Importar › Formato Moodle XML.',
   },

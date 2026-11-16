@@ -123,6 +123,12 @@ describe('cuándo se ofrece aprobar', () => {
     expect(canApprove(startEditing(resource({ options: null })))).toBe(true);
   });
 
+  it('un recurso aprobado sin cambios no se puede volver a aprobar', () => {
+    const state = startEditing(resource({ status: 'aprobado', options: null }));
+    expect(canApprove(state)).toBe(false);
+    expect(canApprove(editDraft(state, { body: 'Contenido actualizado.' }))).toBe(true);
+  });
+
   it('durante un conflicto de versión no se aprueba', () => {
     const state = afterSaveFailure(startEditing(resource()), new ApiError(409, 'Conflicto.', 'VERSION_CONFLICT'));
     expect(canApprove(state)).toBe(false);

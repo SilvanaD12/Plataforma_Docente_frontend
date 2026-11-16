@@ -5,6 +5,7 @@ import {
   CONFLICT_MESSAGE,
   RESET_NOTICE,
   RETRY_NEEDS_SAVE,
+  afterApprovalSuccess,
   afterSaveFailure,
   afterRetrySuccess,
   afterSaveSuccess,
@@ -122,9 +123,33 @@ describe('cuándo se ofrece aprobar', () => {
     expect(canApprove(startEditing(resource({ options: null })))).toBe(true);
   });
 
+  it('un recurso aprobado sin cambios no se puede volver a aprobar', () => {
+    const state = startEditing(resource({ status: 'aprobado', options: null }));
+    expect(canApprove(state)).toBe(false);
+    expect(canApprove(editDraft(state, { body: 'Contenido actualizado.' }))).toBe(true);
+  });
+
   it('durante un conflicto de versión no se aprueba', () => {
     const state = afterSaveFailure(startEditing(resource()), new ApiError(409, 'Conflicto.', 'VERSION_CONFLICT'));
     expect(canApprove(state)).toBe(false);
+  });
+});
+
+describe('resultado de aprobar', () => {
+  it('confirma la aprobación cuando el servidor devuelve el recurso aprobado', () => {
+    const state = startRequest(startEditing(resource()));
+    const approved = resource({ status: 'aprobado', version: 3 });
+    expect(afterApprovalSuccess(state, approved)).toMatchObject({
+      saved: approved,
+      notice: 'Recurso aprobado.',
+      pending: false,
+    });
+  });
+
+  it('conserva el aviso de vuelta a revisión si el servidor devuelve el recurso pendiente', () => {
+    const state = startRequest(startEditing(resource({ status: 'aprobado' })));
+    const pending = resource({ status: 'pendiente', reviewReset: true });
+    expect(afterApprovalSuccess(state, pending).notice).toBe(RESET_NOTICE);
   });
 });
 

@@ -129,7 +129,7 @@ export function distractorProblem(resource: Resource): string | null {
 export function canApprove(state: EditorState): boolean {
   if (state.conflict || state.pending || distractorProblem(state.draft) !== null) return false;
   if (structureProblem(state.draft) !== null) return false;
-  return isDirty(state) || state.saved.approvalBlockers.length === 0;
+  return isDirty(state) || (state.saved.status !== 'aprobado' && state.saved.approvalBlockers.length === 0);
 }
 
 /** Aviso junto al botón de aprobar mientras el borrador no cumpla la regla de los distractores. */
@@ -139,6 +139,11 @@ export function approvalHint(state: EditorState): string | null {
 
 export function afterSaveSuccess(state: EditorState, saved: Resource): EditorState {
   return { saved, draft: saved, notice: saved.reviewReset ? RESET_NOTICE : null, error: null, conflict: false, pending: false };
+}
+
+export function afterApprovalSuccess(state: EditorState, saved: Resource): EditorState {
+  const next = afterSaveSuccess(state, saved);
+  return saved.status === 'aprobado' ? { ...next, notice: 'Recurso aprobado.' } : next;
 }
 
 /**

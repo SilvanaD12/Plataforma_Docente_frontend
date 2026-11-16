@@ -8,6 +8,7 @@ import {
   type Resource,
 } from '../model/resource';
 import {
+  afterApprovalSuccess,
   afterRetrySuccess,
   afterSaveFailure,
   afterSaveSuccess,
@@ -209,7 +210,7 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry, onGenerate
               Guardar cambios
             </button>
             <button type="button" className="btn btn--primary" disabled={!canApprove(state)}
-              onClick={() => run(() => onSave(withStatus(draft, 'aprobado')))}>
+              onClick={() => run(() => onSave(withStatus(draft, 'aprobado')), afterApprovalSuccess)}>
               Aprobar
             </button>
             {saved.status === 'descartado' ? (

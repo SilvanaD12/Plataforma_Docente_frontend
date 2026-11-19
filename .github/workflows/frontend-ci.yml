@@ -39,8 +39,9 @@ jobs:
         with:
           name: lighthouse-reports
           path: .lighthouseci/
+          include-hidden-files: true
           retention-days: 14
-          if-no-files-found: warn
+          if-no-files-found: error
 
   # TA-011: el recorrido de Playwright de TA-002 (e2e/), con la API simulada. No usa claves ni secretos.
   e2e:

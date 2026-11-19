@@ -30,6 +30,17 @@ jobs:
       - run: npm run build
       - run: npm run check:bundle
       - run: npm audit --audit-level=high
+      - name: Run Lighthouse CI
+        run: npm run lighthouse
+
+      - name: Upload Lighthouse reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/
+          retention-days: 14
+          if-no-files-found: warn
 
   # TA-011: el recorrido de Playwright de TA-002 (e2e/), con la API simulada. No usa claves ni secretos.
   e2e:

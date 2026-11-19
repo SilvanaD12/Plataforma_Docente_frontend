@@ -1,0 +1,80 @@
+[
+  {
+    "url": "http://127.0.0.1:4173/login",
+    "isRepresentativeRun": false,
+    "htmlPath": "D:\\Plataforma_Docente_frontend\\.lighthouseci\\reports\\127_0_0_1-login-2026_11_19_03_48_39.report.html",
+    "jsonPath": "D:\\Plataforma_Docente_frontend\\.lighthouseci\\reports\\127_0_0_1-login-2026_11_19_03_48_39.report.json",
+    "summary": {
+      "performance": 1,
+      "accessibility": 1,
+      "best-practices": 1,
+      "seo": 0.91,
+      "agentic-browsing": 0.5
+    }
+  },
+  {
+    "url": "http://127.0.0.1:4173/login",
+    "isRepresentativeRun": false,
+    "htmlPath": "D:\\Plataforma_Docente_frontend\\.lighthouseci\\reports\\127_0_0_1-login-2026_11_19_03_48_50.report.html",
+    "jsonPath": "D:\\Plataforma_Docente_frontend\\.lighthouseci\\reports\\127_0_0_1-login-2026_11_19_03_48_50.report.json",
+    "summary": {
+      "performance": 1,
+      "accessibility": 1,
+      "best-practices": 1,
+      "seo": 0.91,
+      "agentic-browsing": 0.5
+    }
+  },
+  {
+    "url": "http://127.0.0.1:4173/registro",
+    "isRepresentativeRun": false,
+    "htmlPath": "D:\\Plataforma_Docente_frontend\\.lighthouseci\\reports\\127_0_0_1-registro-2026_11_19_03_49_02.report.html",
+    "jsonPath": "D:\\Plataforma_Docente_frontend\\.lighthouseci\\reports\\127_0_0_1-registro-2026_11_19_03_49_02.report.json",
+    "summary": {
+      "performance": 1,
+      "accessibility": 1,
+      "best-practices": 1,
+      "seo": 0.91,
+      "agentic-browsing": 0.5
+    }
+  },
+  {
+    "url": "http://127.0.0.1:4173/registro",
+    "isRepresentativeRun": false,
+    "htmlPath": "D:\\Plataforma_Docente_frontend\\.lighthouseci\\reports\\127_0_0_1-registro-2026_11_19_03_49_26.report.html",
+    "jsonPath": "D:\\Plataforma_Docente_frontend\\.lighthouseci\\reports\\127_0_0_1-registro-2026_11_19_03_49_26.report.json",
+    "summary": {
+      "performance": 1,
+      "accessibility": 1,
+      "best-practices": 1,
+      "seo": 0.91,
+      "agentic-browsing": 0.5
+    }
+  },
+  {
+    "url": "http://127.0.0.1:4173/login",
+    "isRepresentativeRun": true,
+    "htmlPath": "D:\\Plataforma_Docente_frontend\\.lighthouseci\\reports\\127_0_0_1-login-2026_11_19_03_48_27.report.html",
+    "jsonPath": "D:\\Plataforma_Docente_frontend\\.lighthouseci\\reports\\127_0_0_1-login-2026_11_19_03_48_27.report.json",
+    "summary": {
+      "performance": 1,
+      "accessibility": 1,
+      "best-practices": 1,
+      "seo": 0.91,
+      "agentic-browsing": 0.5
+    }
+  },
+  {
+    "url": "http://127.0.0.1:4173/registro",
+    "isRepresentativeRun": true,
+    "htmlPath": "D:\\Plataforma_Docente_frontend\\.lighthouseci\\reports\\127_0_0_1-registro-2026_11_19_03_49_14.report.html",
+    "jsonPath": "D:\\Plataforma_Docente_frontend\\.lighthouseci\\reports\\127_0_0_1-registro-2026_11_19_03_49_14.report.json",
+    "summary": {
+      "performance": 1,
+      "accessibility": 1,
+      "best-practices": 1,
+      "seo": 0.91,
+      "agentic-browsing": 0.5
+    }
+  }
+]

@@ -10,7 +10,9 @@
     "lint": "eslint src",
     "test:e2e": "playwright test --project=chromium",
     "test:e2e:real": "playwright test --project=real-backend",
-    "check:bundle": "node scripts/check-initial-bundle.mjs"
+    "check:bundle": "node scripts/check-initial-bundle.mjs",
+    "preview": "vite preview",
+    "lighthouse": "npx --yes @lhci/cli@0.16.1 autorun"
   },
   "dependencies": {
     "react": "18.3.1",

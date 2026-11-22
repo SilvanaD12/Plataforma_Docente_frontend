@@ -183,3 +183,16 @@
   margin-top: var(--space-1);
 }
 
+.duplication-warning__links {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-1);
+}
+
+.duplication-warning__link {
+  font-size: var(--text-xs);
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+

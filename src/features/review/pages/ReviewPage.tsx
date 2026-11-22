@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import type { UnitContext } from '../../../shared/types/courses';
 import {
@@ -32,27 +32,40 @@ interface ReviewPageContentProps {
   token: string;
   unitId: string;
   onSessionExpired: (token: string) => void;
+  initialReport?: DuplicationReport | null;
+  initialState?: ReviewListState;
+  initialNotice?: { text: string; warn: boolean } | null;
 }
 
-export function ReviewPageContent({ token, unitId, onSessionExpired }: ReviewPageContentProps) {
-  const [state, setState] = useState<ReviewListState>({ status: 'loading' });
-  const [notice, setNotice] = useState<{ text: string; warn: boolean } | null>(null);
+export function ReviewPageContent({
+  token,
+  unitId,
+  onSessionExpired,
+  initialReport = null,
+  initialState = { status: 'loading' },
+  initialNotice = null,
+}: ReviewPageContentProps) {
+  const [state, setState] = useState<ReviewListState>(initialState);
+  const [notice, setNotice] = useState<{ text: string; warn: boolean } | null>(initialNotice);
   // Al salir de la revisión se deja de consultar una regeneración en segundo plano.
   const left = useRef(false);
   useEffect(() => () => { left.current = true; }, []);
   // Cuántas veces se volvió a cargar el editor de cada recurso: solo el regenerado, para no perder otros borradores.
   const [remounts, setRemounts] = useState<Record<string, number>>({});
-  const [duplicationReport, setDuplicationReport] = useState<DuplicationReport | null>(null);
+  const [duplicationReport, setDuplicationReport] = useState<DuplicationReport | null>(initialReport);
 
-  const fetchDuplicationReport = () => {
+  const fetchDuplicationReport = useCallback(() => {
     getDuplicationReport(token, unitId)
       .then((rep) => setDuplicationReport(rep))
-      .catch(() => setDuplicationReport(null));
-  };
+      .catch(() => {
+        setDuplicationReport(null);
+        setNotice({ text: 'No se pudo comprobar si hay contenido repetido.', warn: true });
+      });
+  }, [token, unitId]);
 
   useEffect(() => {
     fetchDuplicationReport();
-  }, [token, unitId]);
+  }, [fetchDuplicationReport]);
 
   useEffect(() => {
     let active = true;
@@ -134,6 +147,14 @@ export function ReviewPageContent({ token, unitId, onSessionExpired }: ReviewPag
                   <div className="duplication-warning__excerpt">
                     <p>Extracto A: {pair.excerptA}</p>
                     <p>Extracto B: {pair.excerptB}</p>
+                  </div>
+                  <div className="duplication-warning__links">
+                    <a href={`#${pair.resourceIdA}`} className="duplication-warning__link">
+                      Ir a {titleA}
+                    </a>
+                    <a href={`#${pair.resourceIdB}`} className="duplication-warning__link">
+                      Ir a {titleB}
+                    </a>
                   </div>
                 </li>
               );

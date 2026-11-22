@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
-import Link from '@tiptap/extension-link';
-import Underline from '@tiptap/extension-underline';
+import { useEffect, useRef, useState } from 'react';
+import type { Editor } from '@tiptap/react';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 
@@ -11,9 +10,20 @@ interface RichTextEditorProps {
   valueText?: string;
   disabled?: boolean;
   onChange: (html: string, plainText: string) => void;
+  /** Permite inyectar un editor simulado en pruebas SSR/Node */
+  testEditor?: Editor | null;
 }
 
-function initialContent(valueHtml?: string | null, valueText?: string): string {
+export function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+export function initialContent(valueHtml?: string | null, valueText?: string): string {
   if (valueHtml && valueHtml.trim()) {
     return valueHtml;
   }
@@ -21,7 +31,7 @@ function initialContent(valueHtml?: string | null, valueText?: string): string {
     return valueText
       .split(/\n{2,}/)
       .filter((p) => p.trim())
-      .map((p) => `<p>${p.replace(/\n/g, '<br>')}</p>`)
+      .map((p) => `<p>${escapeHtml(p).replace(/\n/g, '<br>')}</p>`)
       .join('');
   }
   return '<p></p>';
@@ -34,15 +44,18 @@ export function RichTextEditor({
   valueText,
   disabled = false,
   onChange,
+  testEditor,
 }: RichTextEditorProps) {
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [linkError, setLinkError] = useState<string | null>(null);
 
   const content = initialContent(valueHtml, valueText);
+  const lastEmittedHtmlRef = useRef<string>(content);
 
-  const editor = useEditor({
+  const hookEditor = useEditor({
     immediatelyRender: false,
+    shouldRerenderOnTransaction: true,
     extensions: [
       StarterKit.configure({
         heading: {
@@ -53,33 +66,44 @@ export function RichTextEditor({
         horizontalRule: false,
         dropcursor: false,
         gapcursor: false,
-      }),
-      Underline,
-      Link.configure({
-        openOnClick: false,
-        autolink: false,
-        linkOnPaste: true,
-        HTMLAttributes: {
-          rel: 'noopener noreferrer',
-          target: '_blank',
+        link: {
+          openOnClick: false,
+          autolink: false,
+          linkOnPaste: true,
+          HTMLAttributes: {
+            rel: 'noopener noreferrer',
+            target: '_blank',
+          },
+          validate: (href: string) => /^(https?|mailto):/i.test(href),
         },
-        validate: (href) => /^(https?|mailto):/i.test(href),
+        underline: {},
       }),
     ],
     content,
     editable: !disabled,
     onUpdate({ editor: currentEditor }) {
       const html = currentEditor.getHTML();
-      const plainText = currentEditor.getText();
+      const plainText = currentEditor.getText({ blockSeparator: '\n\n' });
+      lastEmittedHtmlRef.current = html;
       onChange(html, plainText);
     },
   });
+  const editor = testEditor !== undefined ? testEditor : hookEditor;
 
   useEffect(() => {
     if (editor) {
       editor.setEditable(!disabled);
     }
   }, [editor, disabled]);
+
+  useEffect(() => {
+    if (!editor) return;
+    const targetContent = initialContent(valueHtml, valueText);
+    if (targetContent !== lastEmittedHtmlRef.current && editor.getHTML() !== targetContent) {
+      editor.commands.setContent(targetContent, { emitUpdate: false });
+      lastEmittedHtmlRef.current = targetContent;
+    }
+  }, [editor, valueHtml, valueText]);
 
   function handleOpenLinkDialog() {
     if (!editor) return;
@@ -122,8 +146,10 @@ export function RichTextEditor({
           role="textbox"
           aria-multiline="true"
           aria-labelledby={labelId}
-          dangerouslySetInnerHTML={{ __html: content }}
-        />
+          aria-busy="true"
+        >
+          {valueText ?? ''}
+        </div>
       </div>
     );
   }

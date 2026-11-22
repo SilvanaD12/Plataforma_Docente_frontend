@@ -37,14 +37,41 @@ export function canEdit(state: EditorState): boolean {
 }
 
 /**
- * El editor es de texto plano: si el cuerpo cambia, el HTML con formato guardado ya no corresponde y no se envía, para
- * que el servidor y los exportadores usen el cuerpo nuevo. Si el docente vuelve al texto guardado, recupera el formato.
+ * Con el editor enriquecido (REV-P1): si el texto plano del cuerpo coincide con el guardado, se conserva el cuerpo
+ * original y se actualiza únicamente bodyHtml, preservando la huella de contenido y la verificación. Si el texto plano
+ * cambia, se actualizan ambos y se invalida la huella.
  */
-export function editDraft(state: EditorState, changes: Partial<Pick<Resource, 'title' | 'body'>>): EditorState {
+export function editDraft(
+  state: EditorState,
+  changes: Partial<Pick<Resource, 'title' | 'body' | 'bodyHtml'>>,
+): EditorState {
   if (!canEdit(state)) return state;
-  const draft: Resource = { ...state.draft, ...changes, edited: true };
-  if (draft.body === state.saved.body) draft.bodyHtml = state.saved.bodyHtml;
-  else delete draft.bodyHtml;
+  const draft: Resource = { ...state.draft, ...changes };
+  const normalize = (s?: string | null) => (s ?? '').replace(/\r\n/g, '\n').trim();
+
+  if (changes.bodyHtml !== undefined) {
+    if (changes.body !== undefined) {
+      if (normalize(changes.body) === normalize(state.saved.body)) {
+        draft.body = state.saved.body;
+      } else {
+        draft.body = changes.body;
+      }
+    }
+    draft.bodyHtml = changes.bodyHtml;
+  } else if (changes.body !== undefined) {
+    if (draft.body === state.saved.body) {
+      draft.bodyHtml = state.saved.bodyHtml;
+    } else {
+      delete draft.bodyHtml;
+    }
+  }
+
+  const hasChanged =
+    draft.title !== state.saved.title ||
+    draft.body !== state.saved.body ||
+    (draft.bodyHtml ?? null) !== (state.saved.bodyHtml ?? null);
+
+  draft.edited = state.saved.edited || hasChanged;
   return { ...state, draft };
 }
 

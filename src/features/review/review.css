@@ -50,3 +50,136 @@
 .review-discard .field {
   flex: 1 1 14rem;
 }
+
+.rich-editor {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-inner);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.rich-editor--disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.rich-editor__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.rich-editor__separator {
+  display: inline-block;
+  width: 1px;
+  height: 1.25rem;
+  background: var(--color-line);
+  margin: 0 var(--space-1);
+}
+
+.rich-editor__btn {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-inner);
+  cursor: pointer;
+  color: var(--color-text);
+  line-height: 1;
+}
+
+.rich-editor__btn:hover:not(:disabled) {
+  background: var(--color-surface-hover, rgba(0, 0, 0, 0.05));
+}
+
+.rich-editor__btn.is-active {
+  background: var(--color-accent-soft, #e7f5ff);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.rich-editor__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.rich-editor__link-dialog {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-soft, #f8f9fa);
+  border-bottom: 1px solid var(--color-line);
+  align-items: center;
+}
+
+.rich-editor__link-error {
+  color: var(--color-warn-text, #c92a2a);
+  font-size: var(--text-xs);
+  width: 100%;
+  margin: var(--space-1) 0 0 0;
+}
+
+.rich-editor__content-wrapper {
+  padding: var(--space-3);
+  min-height: 7rem;
+}
+
+.rich-editor__content .ProseMirror {
+  outline: none;
+  min-height: 5rem;
+}
+
+.rich-editor__content .ProseMirror p {
+  margin: 0 0 var(--space-2) 0;
+}
+
+.rich-editor__content .ProseMirror p:last-child {
+  margin-bottom: 0;
+}
+
+.rich-editor__content .ProseMirror blockquote {
+  border-left: 3px solid var(--color-accent);
+  margin: var(--space-2) 0;
+  padding-left: var(--space-3);
+  color: var(--color-text-muted);
+}
+
+.duplication-warning {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-warn);
+  border-left-width: 4px;
+  border-radius: var(--radius-inner);
+  background: var(--color-warn-soft);
+  margin-bottom: var(--space-4);
+}
+
+.duplication-warning__title {
+  font-weight: 600;
+  margin: 0;
+}
+
+.duplication-warning__list {
+  margin: 0;
+  padding-left: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.duplication-warning__item {
+  font-size: var(--text-sm);
+}
+
+.duplication-warning__excerpt {
+  color: var(--color-text-muted);
+  font-style: italic;
+  margin-top: var(--space-1);
+}
+

@@ -243,6 +243,31 @@ describe('texto con formato (bodyHtml)', () => {
     const reverted = editDraft(changed, { body: '¿Qué protocolo confirma la entrega?' });
     expect(reverted.draft.bodyHtml).toBe(formatted().bodyHtml);
   });
+
+  it('REV-P1: si el texto plano no cambia pero se envía nuevo bodyHtml, conserva el body guardado y actualiza bodyHtml', () => {
+    const initial = formatted();
+    const newHtml = '<p><em>¿Qué protocolo</em> confirma la entrega?</p>';
+    const state = editDraft(startEditing(initial), {
+      body: '¿Qué protocolo confirma la entrega?',
+      bodyHtml: newHtml,
+    });
+    expect(state.draft.body).toBe(initial.body);
+    expect(state.draft.bodyHtml).toBe(newHtml);
+    expect(isDirty(state)).toBe(true);
+  });
+
+  it('REV-P1: si cambia el texto plano junto con nuevo bodyHtml, actualiza ambos', () => {
+    const initial = formatted();
+    const newText = 'Nuevo texto de pregunta.';
+    const newHtml = '<p><strong>Nuevo texto</strong> de pregunta.</p>';
+    const state = editDraft(startEditing(initial), {
+      body: newText,
+      bodyHtml: newHtml,
+    });
+    expect(state.draft.body).toBe(newText);
+    expect(state.draft.bodyHtml).toBe(newHtml);
+    expect(isDirty(state)).toBe(true);
+  });
 });
 
 describe('«Reintentar comprobación» con cambios sin guardar', () => {

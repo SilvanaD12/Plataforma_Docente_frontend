@@ -37,6 +37,7 @@ import {
 } from '../model/structureEditor';
 import { afterMediaResult, canGenerateMedia, mediaView } from '../model/mediaView';
 import { canRegenerate, regenerationHint } from '../model/regenerationView';
+import { RichTextEditor } from './RichTextEditor';
 import { StructureEditor } from './StructureEditor';
 import { VerificationBadge } from './VerificationBadge';
 import '../review.css';
@@ -139,14 +140,18 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry, onGenerate
         />
       </div>
       <div className="field">
-        <label htmlFor={fieldId('body')}>{draft.options ? 'Enunciado' : 'Contenido'}</label>
-        <textarea
+        <label id={fieldId('body-label')} htmlFor={fieldId('body')}>
+          {draft.options ? 'Enunciado' : 'Contenido'}
+        </label>
+        <RichTextEditor
           id={fieldId('body')}
-          className="input"
-          rows={5}
-          value={draft.body}
+          labelId={fieldId('body-label')}
+          valueHtml={draft.bodyHtml}
+          valueText={draft.body}
           disabled={locked}
-          onChange={(event) => setState((current) => editDraft(current, { body: event.target.value }))}
+          onChange={(html, plainText) =>
+            setState((current) => editDraft(current, { body: plainText, bodyHtml: html }))
+          }
         />
       </div>
 

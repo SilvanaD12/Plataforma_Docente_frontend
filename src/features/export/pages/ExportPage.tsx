@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import type { UnitContext } from '../../../shared/types/courses';
-import { exportUnit, saveFile } from '../api/exportApi';
+import { exportUnit, previewExport, saveFile, type ExportPreviewResult } from '../api/exportApi';
 import { DownloadHistory } from '../components/DownloadHistory';
 import { EXPORT_FORMATS, exportFailure, type ExportFormatId } from '../model/exportView';
 import '../export.css';
@@ -24,9 +24,12 @@ export function ExportPageContent({ token, unitId, onSessionExpired }: ExportPag
   const [exporting, setExporting] = useState<ExportFormatId | null>(null);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [downloads, setDownloads] = useState(0);
+  const [preview, setPreview] = useState<ExportPreviewResult | null>(null);
+  const [previewPageIndex, setPreviewPageIndex] = useState(0);
+  const [previewing, setPreviewing] = useState(false);
 
   async function download(format: ExportFormatId) {
-    if (exporting) return;
+    if (exporting || previewing) return;
     setExporting(format);
     setOutcome(null);
     try {
@@ -40,6 +43,23 @@ export function ExportPageContent({ token, unitId, onSessionExpired }: ExportPag
       else setOutcome({ tone: 'warn', message: failure.message, reasons: failure.reasons });
     } finally {
       setExporting(null);
+    }
+  }
+
+  async function handlePreview(format: ExportFormatId) {
+    if (previewing || exporting !== null) return;
+    setPreviewing(true);
+    setOutcome(null);
+    try {
+      const res = await previewExport(token, unitId, format);
+      setPreview(res);
+      setPreviewPageIndex(0);
+    } catch (error) {
+      const failure = exportFailure(error);
+      if (failure.status === 'expired') onSessionExpired(token);
+      else setOutcome({ tone: 'warn', message: failure.message, reasons: failure.reasons });
+    } finally {
+      setPreviewing(false);
     }
   }
 
@@ -67,19 +87,88 @@ export function ExportPageContent({ token, unitId, onSessionExpired }: ExportPag
           <article key={format.id} className="card stack">
             <h3 className="title">{format.title}</h3>
             <p>{format.description}</p>
-            <button
-              type="button"
-              className="btn btn--primary"
-              disabled={exporting !== null}
-              aria-busy={exporting === format.id}
-              onClick={() => void download(format.id)}
-            >
-              Descargar .{format.extension}
-            </button>
+            <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="btn btn--primary"
+                disabled={exporting !== null || previewing}
+                aria-busy={exporting === format.id}
+                onClick={() => void download(format.id)}
+              >
+                Descargar .{format.extension}
+              </button>
+              {format.id === 'scorm_zip' && (
+                <button
+                  type="button"
+                  className="btn btn--subtle"
+                  disabled={exporting !== null || previewing}
+                  aria-busy={previewing}
+                  onClick={() => void handlePreview(format.id)}
+                >
+                  Vista previa
+                </button>
+              )}
+            </div>
             <p className="muted">{format.howTo}</p>
           </article>
         ))}
       </div>
+
+      {preview && preview.pages.length > 0 && (
+        <article className="export-preview" aria-label="Vista previa de exportación SCORM">
+          <div className="export-preview__header">
+            <h3 className="h3">
+              Vista previa SCORM · Página {preview.pages[previewPageIndex]?.number} de {preview.pages.length}:{' '}
+              {preview.pages[previewPageIndex]?.title}
+            </h3>
+            <div className="export-preview__controls">
+              <button
+                type="button"
+                className="btn btn--sm btn--subtle"
+                disabled={previewPageIndex <= 0}
+                onClick={() => setPreviewPageIndex((i) => i - 1)}
+              >
+                Anterior
+              </button>
+              <button
+                type="button"
+                className="btn btn--sm btn--subtle"
+                disabled={previewPageIndex >= preview.pages.length - 1}
+                onClick={() => setPreviewPageIndex((i) => i + 1)}
+              >
+                Siguiente
+              </button>
+              <button
+                type="button"
+                className="btn btn--sm btn--subtle"
+                onClick={() => setPreview(null)}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+
+          <iframe
+            sandbox=""
+            srcDoc={preview.pages[previewPageIndex]?.html ?? ''}
+            title="Vista previa SCORM"
+            className="export-preview__iframe"
+          />
+
+          {preview.excluded.length > 0 && (
+            <div className="export-preview__excluded">
+              <p><strong>Recursos excluidos de la vista previa:</strong></p>
+              <ul>
+                {preview.excluded.map((item) => (
+                  <li key={item.reason}>
+                    {item.count} {item.count === 1 ? 'recurso' : 'recursos'} ({item.reason})
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </article>
+      )}
 
       <DownloadHistory token={token} onSessionExpired={onSessionExpired} refreshKey={downloads} />
     </section>

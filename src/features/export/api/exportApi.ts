@@ -19,6 +19,32 @@ export function listDownloads(token: string) {
   return request<Download[]>('/downloads', 'GET', undefined, token);
 }
 
+export interface ExportPreviewPage {
+  number: number;
+  title: string;
+  html: string;
+}
+
+export interface ExportExcludedReason {
+  reason: string;
+  count: number;
+}
+
+export interface ExportPreviewResult {
+  pages: ExportPreviewPage[];
+  excluded: ExportExcludedReason[];
+}
+
+/** REV-P2: solicita la vista previa en memoria de las páginas SCORM de la unidad. */
+export function previewExport(token: string, unitId: string, format: ExportFormatId = 'scorm_zip') {
+  return request<ExportPreviewResult>(
+    '/units/' + encodeURIComponent(unitId) + '/exports/preview',
+    'POST',
+    { format, resourceIds: [] },
+    token,
+  );
+}
+
 /** Entrega el archivo al navegador para que lo guarde con el nombre del servidor. */
 export function saveFile(blob: Blob, fileName: string) {
   const url = URL.createObjectURL(blob);

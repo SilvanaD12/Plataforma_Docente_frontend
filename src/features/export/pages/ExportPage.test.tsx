@@ -11,6 +11,7 @@ describe('pestaña de exportación', () => {
     expect(html).toContain('Descargar .zip');
     expect(html).toContain('Descargar .xml');
     expect(html).toContain('Descargar .html');
+    expect(html).toContain('Vista previa');
     expect(html).toContain('Cargando tu historial de descargas…');
   });
 

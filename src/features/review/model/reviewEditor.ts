@@ -47,7 +47,13 @@ export function editDraft(
 ): EditorState {
   if (!canEdit(state)) return state;
   const draft: Resource = { ...state.draft, ...changes };
-  const normalize = (s?: string | null) => (s ?? '').replace(/\r\n/g, '\n').trim();
+  const normalize = (s?: string | null) =>
+    (s ?? '')
+      .replace(/\r\n/g, '\n')
+      .replace(/[ \t\u00a0]+/g, ' ')
+      .replace(/ *\n */g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
 
   if (changes.bodyHtml !== undefined) {
     if (changes.body !== undefined) {

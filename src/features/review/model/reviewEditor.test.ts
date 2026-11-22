@@ -268,6 +268,16 @@ describe('texto con formato (bodyHtml)', () => {
     expect(state.draft.bodyHtml).toBe(newHtml);
     expect(isDirty(state)).toBe(true);
   });
+
+  it('F3: conserva el body guardado aunque difiera en espacios colapsados o espacios finales', () => {
+    const initial = resource({ body: 'Hola  mundo \n\nfin' });
+    const state = editDraft(startEditing(initial), {
+      body: 'Hola mundo\n\nfin',
+      bodyHtml: '<p><strong>Hola mundo</strong></p><p>fin</p>',
+    });
+    expect(state.draft.body).toBe(initial.body);
+    expect(state.draft.bodyHtml).toBe('<p><strong>Hola mundo</strong></p><p>fin</p>');
+  });
 });
 
 describe('«Reintentar comprobación» con cambios sin guardar', () => {

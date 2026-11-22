@@ -48,7 +48,7 @@ const catalog = { types, loading: false, error: '', reload: () => undefined };
 describe('Formulario de generación', () => {
   it('ofrece los tipos del catálogo por etapa, con casillas en modo secuencia', () => {
     const html = render(<GenerationForm unit={unit} catalog={catalog} onSubmit={() => undefined} />);
-    expect(html).toContain('Secuencia 5E');
+    expect(html).toContain('Secuencia de recursos');
     expect(html).toContain('Enganchar');
     expect(html).toContain('Ítem de opción múltiple');
     expect(html.match(/type="checkbox"/g)).toHaveLength(2);
@@ -244,7 +244,7 @@ describe('Vista previa del pedido (HU-040)', () => {
       '<tr><td>2</td><td>Evaluar</td><th scope="row">Ítem de opción múltiple</th><td>3</td></tr>',
     ]);
     expect(markup).toContain('Unidad 1: Transporte');
-    expect(markup).toContain('Secuencia 5E');
+    expect(markup).toContain('Secuencia de recursos');
     expect(markup).toContain('<dt>Resultado de aprendizaje</dt><dd>RA1.1: Compara TCP y UDP.</dd>');
     expect(markup).toContain('<dt>Audiencia</dt><dd>Tercer ciclo</dd>');
     expect(markup).not.toContain('Competencia');

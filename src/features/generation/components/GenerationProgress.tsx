@@ -21,7 +21,7 @@ export function GenerationProgress({ request, resourceTypes, onStartNew }: Gener
     <section className="card" aria-labelledby="generation-progress-title" aria-busy={!done}>
       <header className="generation-progress__head">
         <h2 className="h2" id="generation-progress-title">
-          {request.mode === 'individual' ? 'Generación individual' : 'Secuencia 5E'}
+          {request.mode === 'individual' ? 'Generación individual' : 'Secuencia de recursos'}
         </h2>
         <span className={'generation-badge generation-badge--' + request.status} role="status">
           {requestLabel(request.status)}

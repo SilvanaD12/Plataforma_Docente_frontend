@@ -30,7 +30,7 @@ export function GenerationPreview({ preview, submitting = false, onConfirm, onEd
     <section className="card" aria-labelledby="generation-preview-title" aria-describedby="generation-preview-hint">
       <h2 className="h2" id="generation-preview-title" ref={heading} tabIndex={-1}>Revisa el pedido antes de generar</h2>
       <p className="muted" id="generation-preview-hint">
-        Los pasos se generan en este orden 5E. Para cambiar algo, vuelve a editar el formulario.
+        Los pasos se generan en el orden que se muestra abajo. Para cambiar algo, vuelve a editar el formulario.
       </p>
 
       <dl className="generation-preview__facts">
@@ -44,7 +44,7 @@ export function GenerationPreview({ preview, submitting = false, onConfirm, onEd
 
       <div className="generation-preview__table-wrap">
         <table className="generation-preview__table">
-          <caption className="field__label">Pasos en orden 5E</caption>
+          <caption className="field__label">Orden de generación</caption>
           <thead>
             <tr>
               <th scope="col">Paso</th>

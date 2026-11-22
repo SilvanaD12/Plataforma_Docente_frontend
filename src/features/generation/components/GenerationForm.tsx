@@ -31,7 +31,7 @@ interface GenerationFormProps {
 
 const modes: { value: GenerationMode; label: string; hint: string }[] = [
   { value: 'individual', label: 'Recurso individual', hint: 'Un solo tipo de recurso.' },
-  { value: 'sequence', label: 'Secuencia 5E', hint: `Hasta ${maxSequenceTypes} tipos, generados en orden de Enganchar a Evaluar.` },
+  { value: 'sequence', label: 'Secuencia de recursos', hint: `Hasta ${maxSequenceTypes} tipos, generados en orden de Enganchar a Evaluar.` },
 ];
 
 const quantities = Array.from({ length: maxQuantity - minQuantity + 1 }, (_, index) => minQuantity + index);
@@ -212,7 +212,7 @@ export function GenerationForm({
           <legend className="field__label">{sequence ? 'Tipos de recurso' : 'Tipo de recurso'}</legend>
           <span className="field__hint" id="generation-types-hint">
             {sequence
-              ? `Elegidos: ${selection.length} de ${maxSequenceTypes}. Se generan en orden 5E.`
+              ? `Elegidos: ${selection.length} de ${maxSequenceTypes}. Se generan en el orden de las etapas.`
               : 'Elige un tipo de recurso.'}
           </span>
           {catalog.loading && <p className="muted" role="status">Cargando los tipos de recurso…</p>}

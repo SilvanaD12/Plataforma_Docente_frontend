@@ -32,7 +32,7 @@ export interface GenerationPreview {
 
 const modeLabels: Record<GenerationMode, string> = {
   individual: 'Recurso individual',
-  sequence: 'Secuencia 5E',
+  sequence: 'Secuencia de recursos',
 };
 
 const optionalText = (value: string | undefined) => value?.trim() || null;

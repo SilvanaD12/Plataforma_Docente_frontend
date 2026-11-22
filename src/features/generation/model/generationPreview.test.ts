@@ -83,7 +83,7 @@ describe('Vista previa del pedido (HU-040)', () => {
   it('muestra la unidad, el modo y la modalidad', () => {
     const preview = generationPreview(form({ mode: 'individual', resourceTypes: ['glosario'] }), unit, catalog);
     expect(preview).toMatchObject({ unitTitle: 'Capa de transporte', unitNumber: 3, mode: 'individual', modeLabel: 'Recurso individual', modality: 'Textual' });
-    expect(generationPreview(form({ resourceTypes: ['glosario'] }), unit, catalog).modeLabel).toBe('Secuencia 5E');
+    expect(generationPreview(form({ resourceTypes: ['glosario'] }), unit, catalog).modeLabel).toBe('Secuencia de recursos');
 
     const gamified = catalog.map((item) => ({ ...item, modalities: ['Textual', 'Gamificado'] as ResourceTypeInfo['modalities'] }));
     expect(generationPreview(form({ modality: 'Gamificado', resourceTypes: ['glosario'] }), unit, gamified).modality).toBe('Gamificado');

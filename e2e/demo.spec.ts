@@ -69,6 +69,7 @@ test('el selector de modalidad muestra solo los tipos compatibles', async ({ pag
     expect(values.sort(), name).toEqual(expectedFor(name));
   }
   // Kinestésico tiene un solo tipo: la actividad kinestésica.
+  await page.locator('summary').filter({ hasText: 'Explorar' }).click();
   await expect(page.getByText('Actividad kinestésica')).toBeVisible();
 });
 

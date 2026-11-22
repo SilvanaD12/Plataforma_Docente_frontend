@@ -223,8 +223,10 @@ export function GenerationForm({
             </div>
           )}
           {typesByStage(visibleTypes).map(({ stage, types }) => (
-            <div className="stack generation-stage" key={stage}>
-              <p className="overline">{stageLabel(stage)}</p>
+            <details className="generation-stage" key={stage}>
+              <summary>
+                {stageLabel(stage)} ({types.filter(({ id }) => selection.includes(id)).length})
+              </summary>
               <div className="generation-choices">
                 {types.map((type) => {
                   const checked = selection.includes(type.id);
@@ -243,7 +245,7 @@ export function GenerationForm({
                   );
                 })}
               </div>
-            </div>
+            </details>
           ))}
         </fieldset>
 

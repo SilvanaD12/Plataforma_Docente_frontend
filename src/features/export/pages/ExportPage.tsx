@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import type { UnitContext } from '../../../shared/types/courses';
 import { exportUnit, previewExport, saveFile, type ExportPreviewResult } from '../api/exportApi';
 import { DownloadHistory } from '../components/DownloadHistory';
-import { EXPORT_FORMATS, exportFailure, type ExportFormatId } from '../model/exportView';
+import { EXPORT_FORMATS, exportFailure, formatExclusionReason, type ExportFormatId } from '../model/exportView';
 import '../export.css';
 
 /** Pestaña Exportación de la unidad. Lee la unidad y la sesión del contexto de `UnitLayout`. */
@@ -16,16 +16,24 @@ interface ExportPageContentProps {
   token: string;
   unitId: string;
   onSessionExpired: (token: string) => void;
+  initialPreview?: ExportPreviewResult | null;
+  initialPreviewPageIndex?: number;
 }
 
 type Outcome = { tone: 'ok'; message: string } | { tone: 'warn'; message: string; reasons: string[] };
 
-export function ExportPageContent({ token, unitId, onSessionExpired }: ExportPageContentProps) {
+export function ExportPageContent({
+  token,
+  unitId,
+  onSessionExpired,
+  initialPreview = null,
+  initialPreviewPageIndex = 0,
+}: ExportPageContentProps) {
   const [exporting, setExporting] = useState<ExportFormatId | null>(null);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [downloads, setDownloads] = useState(0);
-  const [preview, setPreview] = useState<ExportPreviewResult | null>(null);
-  const [previewPageIndex, setPreviewPageIndex] = useState(0);
+  const [preview, setPreview] = useState<ExportPreviewResult | null>(initialPreview);
+  const [previewPageIndex, setPreviewPageIndex] = useState(initialPreviewPageIndex);
   const [previewing, setPreviewing] = useState(false);
 
   async function download(format: ExportFormatId) {
@@ -87,7 +95,7 @@ export function ExportPageContent({ token, unitId, onSessionExpired }: ExportPag
           <article key={format.id} className="card stack">
             <h3 className="title">{format.title}</h3>
             <p>{format.description}</p>
-            <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+            <div className="export-actions">
               <button
                 type="button"
                 className="btn btn--primary"
@@ -148,8 +156,9 @@ export function ExportPageContent({ token, unitId, onSessionExpired }: ExportPag
             </div>
           </div>
 
+          {/* El iframe usa sandbox="allow-scripts" (sin allow-same-origin) para ejecutar la interactividad de la actividad/cuestionario de forma aislada sin acceso a cookies, localStorage ni origen de la aplicación. */}
           <iframe
-            sandbox=""
+            sandbox="allow-scripts"
             srcDoc={preview.pages[previewPageIndex]?.html ?? ''}
             title="Vista previa SCORM"
             className="export-preview__iframe"
@@ -161,7 +170,7 @@ export function ExportPageContent({ token, unitId, onSessionExpired }: ExportPag
               <ul>
                 {preview.excluded.map((item) => (
                   <li key={item.reason}>
-                    {item.count} {item.count === 1 ? 'recurso' : 'recursos'} ({item.reason})
+                    {formatExclusionReason(item.reason, item.count)}
                   </li>
                 ))}
               </ul>

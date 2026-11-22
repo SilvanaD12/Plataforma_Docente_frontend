@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import type { UnitContext } from '../../../shared/types/courses';
 import {
+  getDuplicationReport,
   getRegenerationStatus,
   getResource,
   listResources,
@@ -9,6 +10,7 @@ import {
   regenerateResource,
   retryVerification,
   saveResource,
+  type DuplicationReport,
 } from '../api/reviewApi';
 import { ResourceEditor } from '../components/ResourceEditor';
 import {
@@ -40,6 +42,17 @@ export function ReviewPageContent({ token, unitId, onSessionExpired }: ReviewPag
   useEffect(() => () => { left.current = true; }, []);
   // Cuántas veces se volvió a cargar el editor de cada recurso: solo el regenerado, para no perder otros borradores.
   const [remounts, setRemounts] = useState<Record<string, number>>({});
+  const [duplicationReport, setDuplicationReport] = useState<DuplicationReport | null>(null);
+
+  const fetchDuplicationReport = () => {
+    getDuplicationReport(token, unitId)
+      .then((rep) => setDuplicationReport(rep))
+      .catch(() => setDuplicationReport(null));
+  };
+
+  useEffect(() => {
+    fetchDuplicationReport();
+  }, [token, unitId]);
 
   useEffect(() => {
     let active = true;
@@ -57,6 +70,7 @@ export function ReviewPageContent({ token, unitId, onSessionExpired }: ReviewPag
   async function track(action: Promise<Resource>) {
     const resource = await action;
     setState((current) => replaceResource(current, resource));
+    fetchDuplicationReport();
     return resource;
   }
 
@@ -101,16 +115,43 @@ export function ReviewPageContent({ token, unitId, onSessionExpired }: ReviewPag
       {notice && (
         <p className={notice.warn ? 'alert alert--warn' : 'alert'} role={notice.warn ? 'alert' : 'status'}>{notice.text}</p>
       )}
+      {duplicationReport && duplicationReport.flaggedPairs.length > 0 && (
+        <aside className="duplication-warning" role="region" aria-label="Aviso de posible contenido repetido">
+          <p className="duplication-warning__title">Aviso: posible contenido repetido</p>
+          <ul className="duplication-warning__list">
+            {duplicationReport.flaggedPairs.map((pair, idx) => {
+              const resA = state.status === 'ready' ? state.resources.find((r) => r.id === pair.resourceIdA) : null;
+              const resB = state.status === 'ready' ? state.resources.find((r) => r.id === pair.resourceIdB) : null;
+              const titleA = resA ? `«${resA.title}»` : `Recurso ${pair.resourceIdA}`;
+              const titleB = resB ? `«${resB.title}»` : `Recurso ${pair.resourceIdB}`;
+              const pct = Math.round(pair.score * 100);
+              const label = pair.scope === 'question' ? 'pregunta repetida' : 'contenido repetido';
+              return (
+                <li key={`${pair.resourceIdA}-${pair.resourceIdB}-${idx}`} className="duplication-warning__item">
+                  <span>
+                    Posible {label} entre {titleA} y {titleB} (similitud {pct} %)
+                  </span>
+                  <div className="duplication-warning__excerpt">
+                    <p>Extracto A: {pair.excerptA}</p>
+                    <p>Extracto B: {pair.excerptB}</p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </aside>
+      )}
       {state.status === 'ready' && state.resources.map((resource) => (
-        <ResourceEditor
-          key={`${resource.id}:${remounts[resource.id] ?? 0}`}
-          resource={resource}
-          onSave={(draft) => track(saveResource(token, draft))}
-          onReload={() => track(getResource(token, unitId, resource.id))}
-          onRetry={(current) => track(retryVerification(token, current))}
-          onGenerateMedia={(current) => track(regenerateMedia(token, current))}
-          onRegenerate={regenerate}
-        />
+        <div key={`${resource.id}:${remounts[resource.id] ?? 0}`} id={resource.id}>
+          <ResourceEditor
+            resource={resource}
+            onSave={(draft) => track(saveResource(token, draft))}
+            onReload={() => track(getResource(token, unitId, resource.id))}
+            onRetry={(current) => track(retryVerification(token, current))}
+            onGenerateMedia={(current) => track(regenerateMedia(token, current))}
+            onRegenerate={regenerate}
+          />
+        </div>
       ))}
     </section>
   );

@@ -68,7 +68,7 @@ export function editDraft(
     if (draft.body === state.saved.body) {
       draft.bodyHtml = state.saved.bodyHtml;
     } else {
-      delete draft.bodyHtml;
+      draft.bodyHtml = null;
     }
   }
 

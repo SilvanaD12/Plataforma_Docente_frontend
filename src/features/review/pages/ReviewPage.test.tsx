@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
-import type { DuplicationReport } from '../api/reviewApi';
+import { describe, expect, it, vi } from 'vitest';
+import { getDuplicationReport, type DuplicationReport } from '../api/reviewApi';
 import type { Resource } from '../model/resource';
 import { ReviewPageContent } from './ReviewPage';
 
@@ -13,6 +13,39 @@ function resource(id: string, title: string): Resource {
     version: 1, verification: null, approvalBlockers: [],
   };
 }
+
+let capturedOnRegenerate: ((r: Resource) => Promise<void>) | null = null;
+
+vi.mock('../components/ResourceEditor', () => ({
+  ResourceEditor: (props: { resource: Resource; onRegenerate: (r: Resource) => Promise<void> }) => {
+    capturedOnRegenerate = props.onRegenerate;
+    return (
+      <div className="resource-editor">
+        <span>{props.resource.title}</span>
+      </div>
+    );
+  },
+}));
+
+vi.mock('../api/reviewApi', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../api/reviewApi')>();
+  return {
+    ...actual,
+    getDuplicationReport: vi.fn(async () => ({
+      comparedPairs: 0,
+      duplicatePairRate: 0,
+      threshold: 0.7,
+      flaggedPairs: [],
+    })),
+    regenerateResource: vi.fn(async () => ({
+      previousResourceId: 'rec-1',
+      previousDiscarded: true,
+      newResourceIds: ['rec-new'],
+      status: 'succeeded' as const,
+    })),
+    listResources: vi.fn(async () => [resource('rec-new', 'Nuevo recurso')]),
+  };
+});
 
 describe('pestaña de revisión', () => {
   it('mientras carga muestra el aviso de carga', () => {
@@ -82,5 +115,25 @@ describe('pestaña de revisión', () => {
 
     expect(html).toContain('No se pudo comprobar si hay contenido repetido.');
     expect(html).toContain('Recurso A');
+  });
+
+  it('después de regenerar, getDuplicationReport se vuelve a llamar', async () => {
+    const resources = [resource('rec-1', 'Recurso A')];
+    renderToStaticMarkup(
+      <ReviewPageContent
+        token="token"
+        unitId="unidad-1"
+        onSessionExpired={() => {}}
+        initialState={{ status: 'ready', resources }}
+      />,
+    );
+
+    expect(capturedOnRegenerate).toBeTypeOf('function');
+    vi.mocked(getDuplicationReport).mockClear();
+
+    await capturedOnRegenerate!(resources[0]);
+
+    expect(getDuplicationReport).toHaveBeenCalledTimes(1);
+    expect(getDuplicationReport).toHaveBeenCalledWith('token', 'unidad-1');
   });
 });

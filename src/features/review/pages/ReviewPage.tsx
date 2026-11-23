@@ -110,6 +110,7 @@ export function ReviewPageContent({
     setNotice({ text, warn: false });
     try {
       setState(listLoaded(await listResources(token, unitId)));
+      fetchDuplicationReport();
       setRemounts((counts) => ({ ...counts, [current.id]: (counts[current.id] ?? 0) + 1 }));
     } catch {
       setNotice({ text: text + ' No se pudo actualizar la lista: vuelve a cargar la página.', warn: true });

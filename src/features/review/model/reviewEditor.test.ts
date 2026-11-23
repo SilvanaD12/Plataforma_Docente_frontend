@@ -229,8 +229,13 @@ describe('texto con formato (bodyHtml)', () => {
 
   it('al cambiar el cuerpo no se envía el HTML viejo, para que el servidor use el cuerpo nuevo', () => {
     const state = editDraft(startEditing(formatted()), { body: 'Nuevo enunciado.' });
-    expect(state.draft.bodyHtml).toBeUndefined();
-    expect(reviewBody(state.draft)).not.toHaveProperty('bodyHtml');
+    expect(state.draft.bodyHtml).toBeNull();
+    expect(reviewBody(state.draft).bodyHtml).toBeNull();
+  });
+
+  it('un cambio de texto sin bodyHtml deja draft.bodyHtml === null', () => {
+    const state = editDraft(startEditing(formatted()), { body: 'Nuevo enunciado.' });
+    expect(state.draft.bodyHtml).toBeNull();
   });
 
   it('si no cambia el cuerpo, se conserva el formato', () => {

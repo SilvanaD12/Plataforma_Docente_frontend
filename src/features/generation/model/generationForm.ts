@@ -63,7 +63,7 @@ export function toggleType(form: GenerationForm, id: string): GenerationForm {
 }
 
 /**
- * Quita repetidos y ordena los tipos como el catálogo, que ya viene en orden 5E, igual que los ejecutará el servidor.
+ * Quita repetidos y ordena los tipos como el catálogo, que ya viene en el orden de las etapas, igual que los ejecutará el servidor.
  * La usan el cuerpo del pedido y la vista previa, para que nunca muestren órdenes distintos.
  */
 export function orderResourceTypes(ids: string[], catalog: ResourceTypeInfo[]) {

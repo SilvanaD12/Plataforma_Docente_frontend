@@ -1,10 +1,13 @@
 import { request, requestWithStatus } from '../../../shared/api/httpClient';
 import type {
-  GenerationInterpretation, GenerationRequestStatus, GenerationRequestSummary, StartGenerationRequest,
+  GenerationInterpretation, GenerationRequestBody, GenerationRequestStatus, GenerationRequestSummary,
 } from '../model/generationRequest';
 
-/** `created` es true con 202 (pedido nuevo) y false con 200 (misma clave y mismo cuerpo: pedido existente). */
-export async function startGenerationRequest(token: string, key: string, body: StartGenerationRequest) {
+/**
+ * Acepta el cuerpo con plan `{planId, planVersion}` o el anterior de GEN-01. `created` es true con 202 (pedido nuevo)
+ * y false con 200 (misma clave y mismo cuerpo: pedido existente).
+ */
+export async function startGenerationRequest(token: string, key: string, body: GenerationRequestBody) {
   const { status, data } = await requestWithStatus<GenerationRequestStatus>(
     '/generation-requests', 'POST', body, token, { 'Idempotency-Key': key },
   );

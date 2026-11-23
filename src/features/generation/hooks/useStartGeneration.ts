@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError } from '../../../shared/api/httpClient';
 import { startGenerationRequest } from '../api/generationApi';
 import { generationError, isSessionExpired, type GenerationError } from '../model/generationErrors';
-import type { GenerationRequestStatus, StartGenerationRequest } from '../model/generationRequest';
+import type { GenerationRequestBody, GenerationRequestStatus } from '../model/generationRequest';
 import { generationStorage, type GenerationStorage, type StoredGeneration } from './generationStorage';
 
 /** Reintentos automáticos ante un fallo de red, con la misma clave. */
@@ -14,14 +14,14 @@ export function newIdempotencyKey() {
   return Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-const samePayload = (a: StartGenerationRequest, b: StartGenerationRequest) => JSON.stringify(a) === JSON.stringify(b);
+const samePayload = (a: GenerationRequestBody, b: GenerationRequestBody) => JSON.stringify(a) === JSON.stringify(b);
 
 /**
  * Reutiliza la clave guardada solo si el envío anterior con el mismo cuerpo no recibió respuesta.
  * Con un pedido ya confirmado, otro cuerpo o `fresh`, crea una clave nueva.
  */
 export function prepareAttempt(
-  stored: StoredGeneration | null, payload: StartGenerationRequest, fresh: boolean, newKey: () => string,
+  stored: StoredGeneration | null, payload: GenerationRequestBody, fresh: boolean, newKey: () => string,
 ): StoredGeneration {
   if (!fresh && stored && stored.requestId === null && samePayload(stored.payload, payload)) return stored;
   return { key: newKey(), payload, requestId: null };
@@ -30,7 +30,7 @@ export function prepareAttempt(
 interface SubmitOptions {
   unitId: string;
   token: string;
-  payload: StartGenerationRequest;
+  payload: GenerationRequestBody;
   fresh?: boolean;
   send?: typeof startGenerationRequest;
   storage?: GenerationStorage;
@@ -71,7 +71,7 @@ interface UseStartGenerationOptions {
 export function useStartGeneration({ unitId, token, onSessionExpired, onStarted }: UseStartGenerationOptions) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<GenerationError | null>(null);
-  const lastPayload = useRef<StartGenerationRequest | null>(null);
+  const lastPayload = useRef<GenerationRequestBody | null>(null);
   const inFlight = useRef(false);
   const mounted = useRef(false);
 
@@ -80,7 +80,7 @@ export function useStartGeneration({ unitId, token, onSessionExpired, onStarted 
     return () => { mounted.current = false; };
   }, []);
 
-  const start = useCallback(async (payload: StartGenerationRequest, fresh = false) => {
+  const start = useCallback(async (payload: GenerationRequestBody, fresh = false) => {
     if (inFlight.current) return;
     inFlight.current = true;
     lastPayload.current = payload;

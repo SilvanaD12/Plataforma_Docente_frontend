@@ -1,9 +1,9 @@
-import type { StartGenerationRequest } from '../model/generationRequest';
+import type { GenerationRequestBody } from '../model/generationRequest';
 
 /** Lo que se guarda por unidad antes de enviar el pedido (research.md, R10). */
 export interface StoredGeneration {
   key: string;
-  payload: StartGenerationRequest;
+  payload: GenerationRequestBody;
   requestId: string | null;
 }
 

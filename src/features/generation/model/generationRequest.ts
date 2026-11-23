@@ -15,7 +15,7 @@ export type RetrievalMode = 'hybrid' | 'bm25_fallback';
 /** Mismos valores que `verification.status` de REV-01. */
 export type VerificationStatus = 'current' | 'insufficient' | 'pending';
 export type Difficulty = 'basica' | 'intermedia' | 'avanzada';
-export type RejectionKind = 'grounding' | 'repetition' | 'structure' | 'distractor';
+export type RejectionKind = 'grounding' | 'repetition' | 'structure' | 'distractor' | 'plan';
 
 export const maxSequenceTypes = 8;
 export const minQuantity = 1;
@@ -35,6 +35,19 @@ export interface StartGenerationRequest {
   audience?: string;
   competency?: string;
   modalities?: [ResourceModality];
+}
+
+/** Cuerpo de POST /generation-requests con un plan aprobado (GEN-P2, specs/006). */
+export interface StartPlannedGenerationRequest {
+  planId: string;
+  planVersion: number;
+}
+
+/** Los dos cuerpos que acepta POST /generation-requests: con plan o el anterior de GEN-01. */
+export type GenerationRequestBody = StartGenerationRequest | StartPlannedGenerationRequest;
+
+export function isPlannedRequest(body: GenerationRequestBody): body is StartPlannedGenerationRequest {
+  return 'planId' in body;
 }
 
 export interface GenerationInterpretationDraft {
@@ -144,6 +157,9 @@ export interface GenerationRequestSummary {
 
 export interface GenerationRequestStatus extends GenerationRequestSummary {
   parameters: GenerationParametersView;
+  /** Plan que usó el pedido (también el implícito de un pedido sin plan). */
+  planId?: string | null;
+  planVersion?: number | null;
   retrievalMode?: RetrievalMode | null;
   regeneration?: { resourceId: string; resourceVersion: number } | null;
   failure?: Problem | null;

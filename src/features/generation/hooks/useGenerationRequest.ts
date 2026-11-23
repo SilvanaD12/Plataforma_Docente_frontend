@@ -3,7 +3,7 @@ import { ApiError } from '../../../shared/api/httpClient';
 import { getGenerationRequest, listGenerationRequests, startGenerationRequest } from '../api/generationApi';
 import { generationError, isSessionExpired, type GenerationError } from '../model/generationErrors';
 import {
-  isTerminal, type GenerationRequestStatus, type GenerationRequestSummary, type StartGenerationRequest,
+  isTerminal, type GenerationRequestStatus, type GenerationRequestSummary, type GenerationRequestBody,
 } from '../model/generationRequest';
 import { generationStorage, type GenerationStorage } from './generationStorage';
 
@@ -79,7 +79,7 @@ interface RecoverOptions {
   unitId: string;
   storage: GenerationStorage;
   /** Reenvía el POST con la clave original: 200 devuelve el pedido existente y 202 lo crea. */
-  resend: (key: string, payload: StartGenerationRequest) => Promise<{ request: GenerationRequestStatus }>;
+  resend: (key: string, payload: GenerationRequestBody) => Promise<{ request: GenerationRequestStatus }>;
   listActive: () => Promise<GenerationRequestSummary[]>;
 }
 

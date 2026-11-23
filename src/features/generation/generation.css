@@ -237,3 +237,133 @@
 .generation-preview__table tbody th {
   font-weight: var(--weight-semibold);
 }
+
+/* GEN-P3 · Plan de generación */
+
+.generation-form-area {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.generation-form-area[hidden] {
+  display: none;
+}
+
+.generation-plan__heading {
+  gap: var(--space-2);
+}
+
+.generation-plan__stage {
+  gap: var(--space-3);
+}
+
+.generation-plan__item {
+  gap: var(--space-4);
+}
+
+.generation-plan__quantity {
+  min-width: 96px;
+}
+
+.generation-plan__problems {
+  margin: 0;
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-7);
+  border-radius: var(--radius-inner);
+  background: var(--color-warn-soft);
+  font-size: var(--text-ui-size);
+  line-height: var(--text-ui-lh);
+}
+
+.generation-plan__concepts,
+.generation-plan__fragments,
+.generation-plan__context,
+.generation-plan__actions {
+  gap: var(--space-2);
+}
+
+.generation-plan__concept-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.generation-plan__concept {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-control);
+  font-size: var(--text-ui-size);
+}
+
+.generation-plan__concept > span {
+  flex: 1 1 160px;
+  font-weight: var(--weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.generation-plan__concept .input {
+  width: auto;
+  min-width: 180px;
+  flex: 0 1 240px;
+}
+
+.generation-plan__add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.generation-plan__add .field {
+  flex: 1 1 240px;
+}
+
+.generation-plan__fragment {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-soft);
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
+}
+
+.generation-plan__fragment blockquote {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-ui-size);
+  line-height: var(--text-ui-lh);
+}
+
+.generation-plan__evidence summary {
+  cursor: pointer;
+  font-weight: var(--weight-semibold);
+  min-height: var(--touch-target);
+  display: flex;
+  align-items: center;
+}
+
+.generation-badge--plan-draft {
+  background: var(--color-soft);
+}
+
+.generation-badge--plan-approved {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent-soft);
+  color: var(--color-accent-dark);
+}
+
+/* Los estilos globales solo heredan la fuente en `button` e `input`; los campos del plan usan la de la página. */
+.generation-plan textarea,
+.generation-plan input,
+.generation-plan select {
+  font-family: inherit;
+}
+
+.generation-plan__purpose-hint {
+  margin-top: calc(-1 * var(--space-3));
+}

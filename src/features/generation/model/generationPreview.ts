@@ -13,7 +13,7 @@ export interface GenerationPreviewStep {
   quantity: number;
 }
 
-/** Lo que se va a pedir, en el mismo orden 5E en que el servidor ejecutará los pasos (HU-040). */
+/** Lo que se va a pedir, en el mismo orden de etapas en que el servidor ejecutará los pasos (HU-040). */
 export interface GenerationPreview {
   unitTitle: string;
   unitNumber: number;

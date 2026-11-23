@@ -1,5 +1,5 @@
 import { Link, useOutletContext } from 'react-router-dom';
-import type { UnitContext } from '../../../shared/types/courses';
+import { activityTypeLabels, type UnitContext } from '../../../shared/types/courses';
 import { FallbackNotices } from '../components/FallbackNotices';
 import { GenerationForm } from '../components/GenerationForm';
 import { GenerationProgress } from '../components/GenerationProgress';
@@ -18,6 +18,11 @@ export function GenerationPage() {
 }
 
 function GenerationView({ course, unit, token, onSessionExpired }: UnitContext) {
+  const audience = [
+    course.educationLevel,
+    course.academicCycle,
+    course.activityType ? activityTypeLabels[course.activityType] : '',
+  ].filter(Boolean).join(' · ');
   const catalog = useResourceTypes();
   const processedMaterial = useProcessedMaterial(token, unit.id, onSessionExpired);
   const tracking = useGenerationRequest({ unitId: unit.id, token, onSessionExpired });
@@ -47,7 +52,7 @@ function GenerationView({ course, unit, token, onSessionExpired }: UnitContext) 
       )}
 
       {!running && !tracking.recovering && (
-        <GenerationForm unit={unit} catalog={catalog} token={token} onSessionExpired={onSessionExpired} submitting={starting.submitting} onSubmit={(body) => void starting.start(body)} />
+        <GenerationForm unit={unit} defaultAudience={audience} catalog={catalog} token={token} onSessionExpired={onSessionExpired} submitting={starting.submitting} onSubmit={(body) => void starting.start(body)} />
       )}
 
       {starting.error && (

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { errorMessage } from '../../../shared/api/httpClient';
 import { courseFormProblem, courseRequest, maxCourseUnits } from '../model/courseForm';
-import type { Course } from '../../../shared/types/courses';
+import { activityTypeLabels, type ActivityType, type Course } from '../../../shared/types/courses';
 import type { CoursesContext } from './CoursesLayout';
 
 export function CourseFormPage() {
@@ -52,6 +52,9 @@ function CourseFormView({ course, saveCourse }: { course?: Course; saveCourse: C
       term: value('term'),
       summary: value('summary'),
       learningGoal: value('learningGoal'),
+      educationLevel: value('educationLevel'),
+      academicCycle: value('academicCycle'),
+      activityType: value('activityType') as ActivityType | '',
       units: unitKeys.map((key) => {
         const unit = savedUnits[key - 1];
         return {
@@ -100,6 +103,23 @@ function CourseFormView({ course, saveCourse }: { course?: Course; saveCourse: C
             <label className="field"><span className="field__label">Código</span><input className="input" name="code" defaultValue={course?.code ?? ''} placeholder="RED-301" maxLength={30} required disabled={saving} /></label>
             <label className="field"><span className="field__label">Nombre del curso</span><input className="input" name="name" defaultValue={course?.name ?? ''} maxLength={150} required disabled={saving} /></label>
             <label className="field"><span className="field__label">Periodo</span><input className="input" name="term" defaultValue={course?.term ?? ''} placeholder="2026-II" maxLength={30} required disabled={saving} /></label>
+          </div>
+          <div className="course-form-grid">
+            <label className="field">
+              <span className="field__label">Nivel educativo (opcional)</span>
+              <input className="input" name="educationLevel" defaultValue={course?.educationLevel ?? ''} placeholder="Pregrado" maxLength={60} disabled={saving} />
+            </label>
+            <label className="field">
+              <span className="field__label">Ciclo (opcional)</span>
+              <input className="input" name="academicCycle" defaultValue={course?.academicCycle ?? ''} placeholder="7.º ciclo" maxLength={40} disabled={saving} />
+            </label>
+            <label className="field">
+              <span className="field__label">Tipo de actividad (opcional)</span>
+              <select className="input" name="activityType" defaultValue={course?.activityType ?? ''} disabled={saving}>
+                <option value="">Sin especificar</option>
+                {Object.entries(activityTypeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </label>
           </div>
           <label className="field"><span className="field__label">Sumilla (opcional)</span><textarea className="input course-textarea" name="summary" defaultValue={course?.summary ?? ''} rows={3} maxLength={3000} disabled={saving} /></label>
           <label className="field"><span className="field__label">Logro del curso (opcional)</span><textarea className="input course-textarea" name="learningGoal" defaultValue={course?.learningGoal ?? ''} rows={2} maxLength={1000} disabled={saving} /></label>

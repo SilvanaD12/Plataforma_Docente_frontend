@@ -1,3 +1,5 @@
+import type { ActivityType } from '../../../shared/types/courses';
+
 export const maxCourseUnits = 50;
 const maxUnitOutcomes = 20;
 const outcomePrefix = /^([A-Za-z]{1,4}[ -]?\d+(?:\.\d+)*)\s*[:.)-]\s+(.+)$/;
@@ -15,6 +17,9 @@ export interface CourseForm {
   term: string;
   summary: string;
   learningGoal: string;
+  educationLevel?: string;
+  academicCycle?: string;
+  activityType?: ActivityType | '';
   units: UnitForm[];
 }
 
@@ -25,6 +30,9 @@ export function courseRequest(form: CourseForm) {
     term: form.term.trim(),
     summary: form.summary.trim(),
     learningGoal: form.learningGoal.trim(),
+    ...(form.educationLevel === undefined ? {} : { educationLevel: form.educationLevel.trim() }),
+    ...(form.academicCycle === undefined ? {} : { academicCycle: form.academicCycle.trim() }),
+    ...(form.activityType === undefined ? {} : { activityType: form.activityType }),
     units: form.units.map(({ id, title, outcomes, savedOutcomes = [] }) => ({
       ...(id ? { id } : {}),
       title: title.trim(),

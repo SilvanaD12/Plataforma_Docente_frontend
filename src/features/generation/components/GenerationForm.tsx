@@ -20,6 +20,7 @@ import '../generation.css';
 
 interface GenerationFormProps {
   unit: Unit;
+  defaultAudience?: string;
   catalog: ResourceTypesState;
   token?: string;
   onSessionExpired?: (token: string) => void;
@@ -38,9 +39,9 @@ const quantities = Array.from({ length: maxQuantity - minQuantity + 1 }, (_, ind
 
 export function GenerationForm({
   unit, catalog, token, onSessionExpired, submitting = false, error, onSubmit,
-  initialValue = initialGenerationForm,
+  initialValue, defaultAudience = '',
 }: GenerationFormProps) {
-  const [form, setForm] = useState(initialValue);
+  const [form, setForm] = useState(() => initialValue ?? { ...initialGenerationForm, audience: defaultAudience });
   const [problem, setProblem] = useState('');
   const [chatMessage, setChatMessage] = useState('');
   const [interpreting, setInterpreting] = useState(false);

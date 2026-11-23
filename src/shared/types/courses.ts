@@ -12,6 +12,14 @@ export interface Unit {
   outcomes: LearningOutcome[];
 }
 
+export const activityTypeLabels = {
+  course: 'Curso',
+  workshop: 'Taller',
+  conference: 'Conferencia',
+} as const;
+
+export type ActivityType = keyof typeof activityTypeLabels;
+
 export interface Course {
   id: string;
   code: string;
@@ -19,6 +27,9 @@ export interface Course {
   term: string;
   summary: string | null;
   learningGoal: string | null;
+  educationLevel?: string | null;
+  academicCycle?: string | null;
+  activityType?: ActivityType | '' | null;
   units: Unit[];
 }
 

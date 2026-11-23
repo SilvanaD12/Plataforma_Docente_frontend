@@ -38,7 +38,7 @@ function GenerationView({ course, unit, token, onSessionExpired }: UnitContext) 
   return (
     <div className="stack stack--loose">
       <p className="muted">
-        Genera recursos 5E para «{unit.title}» de {course.name} a partir del material procesado de la unidad.
+        Genera recursos para «{unit.title}» de {course.name} a partir del material procesado de la unidad.
         Lo generado pasa a Revisión.
       </p>
 

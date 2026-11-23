@@ -77,6 +77,7 @@ test('de la cuenta nueva a la descarga del Moodle XML, validado con el validador
   // Generación: un ítem de opción múltiple (el backend local usa LLM_PROVIDER=rules).
   await tabs.getByRole('link', { name: 'Generación' }).click();
   await page.getByRole('radio', { name: /Recurso individual/ }).check();
+  await page.locator('summary').filter({ hasText: 'Evaluar' }).click();
   await page.getByRole('radio', { name: 'Preguntas de opción múltiple' }).check();
   await page.getByRole('button', { name: 'Generar recurso' }).click();
   await page.getByRole('button', { name: 'Confirmar y generar' }).click();

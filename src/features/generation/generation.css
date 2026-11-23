@@ -53,8 +53,13 @@
   display: block;
 }
 
-.generation-stage {
-  gap: var(--space-2);
+.generation-stage summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.generation-stage[open] summary {
+  margin-bottom: var(--space-2);
 }
 
 .generation-options,

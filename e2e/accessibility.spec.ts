@@ -101,6 +101,7 @@ test('QA-09: evalúa la accesibilidad de las pantallas del sprint', async ({ pag
   const chat = page.getByRole('form', { name: 'Chat de Generación' });
   await chat.getByRole('textbox').fill('Quiero dos glosarios');
   await chat.getByRole('button', { name: 'Interpretar' }).click();
+  await page.locator('summary').filter({ hasText: 'Explicar (1)' }).click();
   await expect(page.getByRole('radio', { name: 'Glosario', exact: true })).toBeChecked();
   await scan(page, 'Generación con el chat interpretado');
 

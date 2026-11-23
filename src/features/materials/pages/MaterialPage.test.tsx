@@ -26,6 +26,7 @@ describe('pestaña de material y evidencia', () => {
     );
     expect(html).toContain('Materiales registrados');
     expect(html).toContain('Búsqueda de evidencia en la unidad');
+    expect(html).toContain('Importar desde URL');
     expect(html).toContain('Importar de fuente abierta');
   });
 });

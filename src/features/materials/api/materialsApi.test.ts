@@ -82,6 +82,29 @@ describe('API de materiales (MAT-01)', () => {
     expect(res[0].id).toBe('frag-1');
   });
 
+  it('importa material desde una URL pública mediante POST a /documents/from-url', async () => {
+    const urlDoc = sampleDocument({
+      fileName: 'Modelo_OSI.txt',
+      kind: 'txt',
+      status: 'procesado',
+      fragmentCount: 4,
+    });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json(urlDoc));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await materialsApi.importFromUrl(
+      'unidad-1',
+      'https://es.wikipedia.org/wiki/Modelo_OSI',
+      'token-docente',
+    );
+    expect(res.status).toBe('procesado');
+
+    const call = lastCall(fetchMock);
+    expect(call.url).toBe('/api/v1/documents/from-url');
+    expect(call.method).toBe('POST');
+    expect(call.headers.get('Authorization')).toBe('Bearer token-docente');
+  });
+
   it('ejecuta búsqueda de evidencia por unidad', async () => {
     const searchResults = [
       { id: 'frag-1', documentId: 'doc-1', text: 'Protocolo TCP', relevance: 0.95, location: 'Pág. 3' },

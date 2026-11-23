@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatFileSize, validateUploadFile } from './materialValidation';
+import { formatFileSize, validateImportUrl, validateUploadFile } from './materialValidation';
 
 describe('materialValidation model', () => {
   it('rechaza archivos nulos', () => {
@@ -20,6 +20,14 @@ describe('materialValidation model', () => {
   it('acepta archivos PDF, PPTX y TXT dentro del límite', () => {
     const validFile = new File(['contenido'], 'clase.pdf');
     expect(validateUploadFile(validFile)).toBeNull();
+  });
+
+  it('valida URLs públicas para importación web', () => {
+    expect(validateImportUrl('')).toBe('Ingresa una URL pública antes de continuar.');
+    expect(validateImportUrl('no-es-url')).toBe('Ingresa una URL válida que comience con http:// o https://.');
+    expect(validateImportUrl('ftp://ejemplo.com/archivo.txt')).toBe('Solo se admiten URLs con protocolo http:// o https://.');
+    expect(validateImportUrl('http://localhost:8000')).toBe('No se permiten direcciones locales o privadas.');
+    expect(validateImportUrl('https://es.wikipedia.org/wiki/Modelo_OSI')).toBeNull();
   });
 
   it('formatea correctamente los tamaños en bytes, KB y MB', () => {

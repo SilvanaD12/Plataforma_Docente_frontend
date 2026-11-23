@@ -63,14 +63,19 @@ const REASONS: Record<string, string> = {
   unsupported_format: 'que este formato no admite',
 };
 
+export function formatExclusionReason(reason: string, count: number): string {
+  const noun = count === 1 ? 'recurso' : 'recursos';
+  const label = REASONS[reason] ?? 'por otro motivo';
+  return `${count} ${noun} ${label}`;
+}
+
 export type ExportFailure = { status: 'expired' } | { status: 'error'; message: string; reasons: string[] };
 
 function reasonLines(details: unknown): string[] {
   if (!Array.isArray(details)) return [];
   return details.flatMap((detail) => {
     if (typeof detail?.reason !== 'string' || typeof detail?.count !== 'number') return [];
-    const count: number = detail.count;
-    return [`${count} ${count === 1 ? 'recurso' : 'recursos'} ${REASONS[detail.reason] ?? 'por otro motivo'}`];
+    return [formatExclusionReason(detail.reason, detail.count)];
   });
 }
 

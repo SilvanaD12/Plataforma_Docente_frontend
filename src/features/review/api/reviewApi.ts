@@ -91,3 +91,30 @@ export function getRegenerationStatus(token: string, resource: Pick<Resource, 'u
 export function isVersionConflict(error: unknown): boolean {
   return error instanceof ApiError && error.status === 409 && error.code === 'VERSION_CONFLICT';
 }
+
+export interface FlaggedPair {
+  resourceIdA: string;
+  resourceIdB: string;
+  scope: 'resource' | 'question';
+  score: number;
+  excerptA: string;
+  excerptB: string;
+}
+
+export interface DuplicationReport {
+  threshold: number;
+  comparedPairs: number;
+  flaggedPairs: FlaggedPair[];
+  duplicatePairRate: number;
+}
+
+/** REV-P3: consulta el reporte de duplicidad de la unidad. */
+export function getDuplicationReport(token: string, unitId: string) {
+  return request<DuplicationReport>(
+    '/units/' + encodeURIComponent(unitId) + '/duplication-report',
+    'GET',
+    undefined,
+    token,
+  );
+}
+

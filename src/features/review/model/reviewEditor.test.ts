@@ -229,8 +229,13 @@ describe('texto con formato (bodyHtml)', () => {
 
   it('al cambiar el cuerpo no se envía el HTML viejo, para que el servidor use el cuerpo nuevo', () => {
     const state = editDraft(startEditing(formatted()), { body: 'Nuevo enunciado.' });
-    expect(state.draft.bodyHtml).toBeUndefined();
-    expect(reviewBody(state.draft)).not.toHaveProperty('bodyHtml');
+    expect(state.draft.bodyHtml).toBeNull();
+    expect(reviewBody(state.draft).bodyHtml).toBeNull();
+  });
+
+  it('un cambio de texto sin bodyHtml deja draft.bodyHtml === null', () => {
+    const state = editDraft(startEditing(formatted()), { body: 'Nuevo enunciado.' });
+    expect(state.draft.bodyHtml).toBeNull();
   });
 
   it('si no cambia el cuerpo, se conserva el formato', () => {
@@ -242,6 +247,41 @@ describe('texto con formato (bodyHtml)', () => {
     const changed = editDraft(startEditing(formatted()), { body: 'Nuevo enunciado.' });
     const reverted = editDraft(changed, { body: '¿Qué protocolo confirma la entrega?' });
     expect(reverted.draft.bodyHtml).toBe(formatted().bodyHtml);
+  });
+
+  it('REV-P1: si el texto plano no cambia pero se envía nuevo bodyHtml, conserva el body guardado y actualiza bodyHtml', () => {
+    const initial = formatted();
+    const newHtml = '<p><em>¿Qué protocolo</em> confirma la entrega?</p>';
+    const state = editDraft(startEditing(initial), {
+      body: '¿Qué protocolo confirma la entrega?',
+      bodyHtml: newHtml,
+    });
+    expect(state.draft.body).toBe(initial.body);
+    expect(state.draft.bodyHtml).toBe(newHtml);
+    expect(isDirty(state)).toBe(true);
+  });
+
+  it('REV-P1: si cambia el texto plano junto con nuevo bodyHtml, actualiza ambos', () => {
+    const initial = formatted();
+    const newText = 'Nuevo texto de pregunta.';
+    const newHtml = '<p><strong>Nuevo texto</strong> de pregunta.</p>';
+    const state = editDraft(startEditing(initial), {
+      body: newText,
+      bodyHtml: newHtml,
+    });
+    expect(state.draft.body).toBe(newText);
+    expect(state.draft.bodyHtml).toBe(newHtml);
+    expect(isDirty(state)).toBe(true);
+  });
+
+  it('F3: conserva el body guardado aunque difiera en espacios colapsados o espacios finales', () => {
+    const initial = resource({ body: 'Hola  mundo \n\nfin' });
+    const state = editDraft(startEditing(initial), {
+      body: 'Hola mundo\n\nfin',
+      bodyHtml: '<p><strong>Hola mundo</strong></p><p>fin</p>',
+    });
+    expect(state.draft.body).toBe(initial.body);
+    expect(state.draft.bodyHtml).toBe('<p><strong>Hola mundo</strong></p><p>fin</p>');
   });
 });
 

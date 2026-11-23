@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '../../../shared/api/httpClient';
-import { EXPORT_FORMATS, exportFailure, historyMessage, historyRow, type Download } from './exportView';
+import { EXPORT_FORMATS, exportFailure, formatExclusionReason, historyMessage, historyRow, type Download } from './exportView';
 
 function download(overrides: Partial<Download> = {}): Download {
   return {
@@ -18,6 +18,12 @@ describe('formatos de exportación', () => {
 });
 
 describe('motivo cuando no se puede exportar', () => {
+  it('formatea motivos de exclusión en singular y plural', () => {
+    expect(formatExclusionReason('not_approved', 1)).toBe('1 recurso sin aprobar');
+    expect(formatExclusionReason('not_approved', 2)).toBe('2 recursos sin aprobar');
+    expect(formatExclusionReason('desconocido', 1)).toBe('1 recurso por otro motivo');
+  });
+
   it('sin details muestra el message de la API (acordado con Silvana)', () => {
     const error = new ApiError(422, 'Aprueba al menos un recurso antes de exportar.', 'NO_APPROVED_RESOURCES');
     expect(exportFailure(error)).toEqual({ status: 'error', message: 'Aprueba al menos un recurso antes de exportar.', reasons: [] });

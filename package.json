@@ -15,6 +15,9 @@
     "lighthouse": "npx --yes @lhci/cli@0.16.1 autorun"
   },
   "dependencies": {
+    "@tiptap/pm": "3.35.0",
+    "@tiptap/react": "3.35.0",
+    "@tiptap/starter-kit": "3.35.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-router-dom": "6.30.6"

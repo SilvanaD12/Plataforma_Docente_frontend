@@ -55,6 +55,18 @@ export const materialsApi = {
   },
 
   /**
+   * Importa y procesa una página web pública a partir de su URL.
+   */
+  async importFromUrl(unitId: string, url: string, token: string): Promise<DocumentItem> {
+    return request<DocumentItem>(
+      '/documents/from-url',
+      'POST',
+      { unitId, url },
+      token
+    );
+  },
+
+  /**
    * Búsqueda híbrida de evidencia con query parameters estandarizados en camelCase (unitId, topK ge=1 le=50).
    */
   async searchEvidence(

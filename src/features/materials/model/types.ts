@@ -4,8 +4,9 @@ export type DocumentKind = 'pdf' | 'pptx' | 'txt';
 export interface DocumentOrigin {
   source: string;
   url: string;
-  license: string;
-  topic: string;
+  license?: string;
+  topic?: string;
+  title?: string;
 }
 
 export interface DocumentItem {

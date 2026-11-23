@@ -15,6 +15,7 @@ import {
 import { DocumentCard } from '../components/DocumentCard';
 import { MaterialUploadForm } from '../components/MaterialUploadForm';
 import { TopicSearchModal } from '../components/TopicSearchModal';
+import { UrlImportModal } from '../components/UrlImportModal';
 import { ChunkListModal } from '../components/ChunkListModal';
 import { EvidenceSearchPanel } from '../components/EvidenceSearchPanel';
 import '../materials.css';
@@ -38,6 +39,7 @@ export function MaterialPageContent({ unit, token, onSessionExpired }: MaterialP
 
   // Modales, manejo de foco y prevención de condiciones de carrera
   const [isTopicModalOpen, setIsTopicModalOpen] = useState(false);
+  const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
   const [isChunkModalOpen, setIsChunkModalOpen] = useState(false);
   const [activeChunks, setActiveChunks] = useState<ChunkItem[]>([]);
   const [isLoadingChunks, setIsLoadingChunks] = useState(false);
@@ -197,6 +199,29 @@ export function MaterialPageContent({ unit, token, onSessionExpired }: MaterialP
     }
   };
 
+  const handleOpenUrlModal = (e: React.MouseEvent<HTMLButtonElement>) => {
+    lastTriggerRef.current = e.currentTarget;
+    setIsUrlModalOpen(true);
+  };
+
+  const handleCloseUrlModal = () => {
+    setIsUrlModalOpen(false);
+    lastTriggerRef.current?.focus();
+  };
+
+  const handleImportUrl = async (url: string) => {
+    try {
+      const imported = await materialsApi.importFromUrl(unit.id, url, token);
+      setListState((current) => replaceDocument(current, imported));
+    } catch (err: unknown) {
+      if (err instanceof ApiError && err.status === 401) {
+        onSessionExpired(token);
+        return;
+      }
+      throw err;
+    }
+  };
+
   const handleSearchEvidence = async (query: string, topK: number) => {
     try {
       return await materialsApi.searchEvidence(query, unit.id, topK, token);
@@ -214,13 +239,22 @@ export function MaterialPageContent({ unit, token, onSessionExpired }: MaterialP
     <section className="stack">
       <div className="mat-section-head">
         <h2 className="h2">Material y Evidencia</h2>
-        <button
-          type="button"
-          className="btn"
-          onClick={handleOpenTopicModal}
-        >
-          Importar de fuente abierta
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="btn"
+            onClick={handleOpenUrlModal}
+          >
+            Importar desde URL
+          </button>
+          <button
+            type="button"
+            className="btn"
+            onClick={handleOpenTopicModal}
+          >
+            Importar de fuente abierta
+          </button>
+        </div>
       </div>
 
       {message && (
@@ -277,6 +311,12 @@ export function MaterialPageContent({ unit, token, onSessionExpired }: MaterialP
         isOpen={isTopicModalOpen}
         onClose={handleCloseTopicModal}
         onImport={handleImportTopic}
+      />
+
+      <UrlImportModal
+        isOpen={isUrlModalOpen}
+        onClose={handleCloseUrlModal}
+        onImport={handleImportUrl}
       />
 
       <ChunkListModal

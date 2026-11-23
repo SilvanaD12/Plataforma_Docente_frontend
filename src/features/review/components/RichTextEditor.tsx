@@ -81,6 +81,7 @@ export function RichTextEditor({
     ],
     content,
     editable: !disabled,
+    editorProps: { attributes: { role: 'textbox', 'aria-multiline': 'true', ...(labelId ? { 'aria-labelledby': labelId } : {}) } },
     onUpdate({ editor: currentEditor }) {
       const html = currentEditor.getHTML();
       const plainText = currentEditor.getText({ blockSeparator: '\n\n' });
@@ -203,7 +204,7 @@ export function RichTextEditor({
         <button
           type="button"
           className={`rich-editor__btn ${editor.isActive('heading', { level: 1 }) ? 'is-active' : ''}`}
-          aria-label="Título 1"
+          aria-label="H1, título 1"
           aria-pressed={editor.isActive('heading', { level: 1 })}
           disabled={disabled}
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
@@ -213,7 +214,7 @@ export function RichTextEditor({
         <button
           type="button"
           className={`rich-editor__btn ${editor.isActive('heading', { level: 2 }) ? 'is-active' : ''}`}
-          aria-label="Título 2"
+          aria-label="H2, título 2"
           aria-pressed={editor.isActive('heading', { level: 2 })}
           disabled={disabled}
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
@@ -223,7 +224,7 @@ export function RichTextEditor({
         <button
           type="button"
           className={`rich-editor__btn ${editor.isActive('heading', { level: 3 }) ? 'is-active' : ''}`}
-          aria-label="Título 3"
+          aria-label="H3, título 3"
           aria-pressed={editor.isActive('heading', { level: 3 })}
           disabled={disabled}
           onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
@@ -246,7 +247,7 @@ export function RichTextEditor({
         <button
           type="button"
           className={`rich-editor__btn ${editor.isActive('orderedList') ? 'is-active' : ''}`}
-          aria-label="Lista numerada"
+          aria-label="1. Lista numerada"
           aria-pressed={editor.isActive('orderedList')}
           disabled={disabled}
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
@@ -315,12 +316,7 @@ export function RichTextEditor({
         </div>
       )}
 
-      <div
-        className="rich-editor__content-wrapper"
-        role="textbox"
-        aria-multiline="true"
-        aria-labelledby={labelId}
-      >
+      <div className="rich-editor__content-wrapper">
         <EditorContent editor={editor} className="rich-editor__content" />
       </div>
     </div>

@@ -105,11 +105,11 @@ describe('RichTextEditor con editor activo', () => {
     expect(html).toContain('aria-label="Cursiva"');
     expect(html).toContain('aria-label="Subrayado"');
     expect(html).toContain('aria-label="Tachado"');
-    expect(html).toContain('aria-label="Título 1"');
-    expect(html).toContain('aria-label="Título 2"');
-    expect(html).toContain('aria-label="Título 3"');
+    expect(html).toContain('aria-label="H1, título 1"');
+    expect(html).toContain('aria-label="H2, título 2"');
+    expect(html).toContain('aria-label="H3, título 3"');
     expect(html).toContain('aria-label="Lista con viñetas"');
-    expect(html).toContain('aria-label="Lista numerada"');
+    expect(html).toContain('aria-label="1. Lista numerada"');
     expect(html).toContain('aria-label="Cita en bloque"');
     expect(html).toContain('aria-label="Enlace web"');
   });

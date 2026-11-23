@@ -13,6 +13,7 @@ import {
   maxQuantity, maxSequenceTypes, minQuantity, resourceModalities, stageLabel,
   type GenerationInterpretation, type GenerationMode, type StartGenerationRequest,
 } from '../model/generationRequest';
+import { planRequestFromGenerationBody, type CreateGenerationPlan } from '../model/generationPlan';
 import { previewFromRequest } from '../model/generationPreview';
 import { hasModalityCatalog, typesByStage, typesForModality } from '../model/resourceTypes';
 import { GenerationPreview } from './GenerationPreview';
@@ -27,6 +28,10 @@ interface GenerationFormProps {
   submitting?: boolean;
   error?: string;
   onSubmit: (body: StartGenerationRequest) => void;
+  /** «Planificar»: crea el plan con los mismos datos que se generarían (GEN-P3). Sin esta prop no se muestra. */
+  onPlan?: (body: CreateGenerationPlan) => void;
+  /** Se está armando el plan. */
+  planning?: boolean;
   initialValue?: GenerationFormValue;
 }
 
@@ -38,7 +43,7 @@ const modes: { value: GenerationMode; label: string; hint: string }[] = [
 const quantities = Array.from({ length: maxQuantity - minQuantity + 1 }, (_, index) => minQuantity + index);
 
 export function GenerationForm({
-  unit, catalog, token, onSessionExpired, submitting = false, error, onSubmit,
+  unit, catalog, token, onSessionExpired, submitting = false, error, onSubmit, onPlan, planning = false,
   initialValue, defaultAudience = '',
 }: GenerationFormProps) {
   const [form, setForm] = useState(() => initialValue ?? { ...initialGenerationForm, audience: defaultAudience });
@@ -51,7 +56,7 @@ export function GenerationForm({
   const [pending, setPending] = useState<StartGenerationRequest | null>(null);
   const submitButton = useRef<HTMLButtonElement>(null);
   const returnFocus = useRef(false);
-  const locked = submitting || interpreting || pending !== null;
+  const locked = submitting || planning || interpreting || pending !== null;
   const sequence = form.mode === 'sequence';
   const supportsModalities = hasModalityCatalog(catalog.types);
   const visibleTypes = supportsModalities
@@ -76,6 +81,13 @@ export function GenerationForm({
     const { body, problem: found } = generationSubmission(form, unit.id, catalog.types);
     setProblem(found ?? '');
     if (!found) setPending(body);
+  }
+
+  function plan() {
+    if (cannotSubmit || !onPlan) return;
+    const { body, problem: found } = generationSubmission(form, unit.id, catalog.types);
+    setProblem(found ?? '');
+    if (!found) onPlan(planRequestFromGenerationBody(body));
   }
 
   function confirm() {
@@ -307,10 +319,24 @@ export function GenerationForm({
               {visibleTypes.length ? 'Elige un tipo de recurso compatible con esta modalidad para generar.' : 'Esta modalidad todavía no tiene tipos disponibles.'}
             </p>
           )}
-          <button ref={submitButton} className="btn btn--primary" type="submit" aria-busy={submitting && !pending}
-            aria-describedby={needsType ? 'generation-modality-hint' : undefined} disabled={cannotSubmit}>
-            {submitting && !pending ? 'Enviando…' : sequence ? 'Generar secuencia' : 'Generar recurso'}
-          </button>
+          {onPlan && (
+            <p className="field__hint" id="generation-plan-hint">
+              «Planificar» arma un plan con el propósito, los conceptos y los fragmentos de cada recurso, para revisarlo y
+              aprobarlo antes de generar.
+            </p>
+          )}
+          <div className="course-actions">
+            {onPlan && (
+              <button className="btn" type="button" aria-busy={planning} aria-describedby="generation-plan-hint"
+                disabled={cannotSubmit} onClick={plan}>
+                {planning ? 'Armando el plan…' : 'Planificar'}
+              </button>
+            )}
+            <button ref={submitButton} className="btn btn--primary" type="submit" aria-busy={submitting && !pending}
+              aria-describedby={needsType ? 'generation-modality-hint' : undefined} disabled={cannotSubmit}>
+              {submitting && !pending ? 'Enviando…' : sequence ? 'Generar secuencia' : 'Generar recurso'}
+            </button>
+          </div>
         </div>
       </form>
       {pending && (

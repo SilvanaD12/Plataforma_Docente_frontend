@@ -24,7 +24,7 @@ const catalog = [
 ];
 
 describe('Formulario de generación', () => {
-  it('agrupa el catálogo por etapa 5E y omite las etapas vacías', () => {
+  it('agrupa el catálogo por etapa y omite las etapas vacías', () => {
     expect(typesByStage(catalog).map(({ stage }) => stage)).toEqual(['engage', 'explore', 'explain', 'evaluate']);
     expect(typeName(catalog, 'glosario')).toBe('Nombre glosario');
     expect(typeName(catalog, 'desconocido')).toBe('desconocido');
@@ -48,7 +48,7 @@ describe('Formulario de generación', () => {
     expect(toggleType(full, 'otro')).toBe(full);
   });
 
-  it('arma el cuerpo del pedido en orden 5E, sin repetidos y con el resultado opcional', () => {
+  it('arma el cuerpo del pedido en el orden de las etapas, sin repetidos y con el resultado opcional', () => {
     const form = {
       ...initialGenerationForm,
       resourceTypes: ['item_opcion_multiple', 'pregunta_detonante', 'glosario', 'glosario'],

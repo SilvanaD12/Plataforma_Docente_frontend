@@ -42,4 +42,30 @@ describe('Errores de generación', () => {
     expect(isSessionExpired(new ApiError(403, 'x'))).toBe(false);
     expect(isSessionExpired(new Error('x'))).toBe(false);
   });
+
+  it('distingue los errores del plan por su code', () => {
+    const kind = (status: number, code: string) => generationErrorKind(new ApiError(status, 'x', code));
+    expect(kind(422, 'PLAN_REQUIRED')).toBe('planRequired');
+    expect(kind(422, 'PLAN_NOT_APPROVED')).toBe('planNotApproved');
+    expect(kind(422, 'PLAN_INVALID')).toBe('planInvalid');
+    expect(kind(409, 'PLAN_VERSION_CONFLICT')).toBe('planVersionConflict');
+    expect(kind(409, 'PLAN_ALREADY_USED')).toBe('planAlreadyUsed');
+    expect(kind(409, 'PLAN_EVIDENCE_STALE')).toBe('planEvidenceStale');
+    expect(kind(404, 'PLAN_NOT_FOUND')).toBe('planNotFound');
+    expect(kind(422, 'INSUFFICIENT_EVIDENCE')).toBe('insufficientEvidence');
+  });
+
+  it('lee los problemas de PLAN_INVALID y los documentos de PLAN_EVIDENCE_STALE, e ignora detalles con otra forma', () => {
+    const problem = { code: 'ITEM_WITHOUT_EVIDENCE', message: 'El ítem 2 no cita fragmentos.', itemPosition: 2 };
+    expect(generationError(new ApiError(422, 'El plan tiene problemas.', 'PLAN_INVALID', [problem, { code: 1 }]))).toEqual({
+      kind: 'planInvalid', message: 'El plan tiene problemas.', problems: [problem],
+    });
+
+    const stale = { documentId: 'doc-1', documentName: 'protocolos.pdf', missingFragmentIds: ['frag-1'] };
+    expect(generationError(new ApiError(409, 'El material cambió.', 'PLAN_EVIDENCE_STALE', [stale, 'x']))).toEqual({
+      kind: 'planEvidenceStale', message: 'El material cambió.', staleDocuments: [stale],
+    });
+    expect(generationError(new ApiError(409, 'x', 'PLAN_EVIDENCE_STALE')).staleDocuments).toEqual([]);
+    expect(generationError(new ApiError(429, 'x', 'TOO_MANY_ACTIVE_REQUESTS'))).not.toHaveProperty('problems');
+  });
 });

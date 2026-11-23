@@ -116,7 +116,7 @@ describe('Formulario de generación', () => {
 });
 
 describe('Progreso de la generación', () => {
-  it('muestra los pasos en orden 5E con su estado, recursos verificados y rechazos', () => {
+  it('muestra los pasos en el orden de las etapas con su estado, recursos verificados y rechazos', () => {
     const html = render(<GenerationProgress resourceTypes={types} request={generationRequest({
       status: 'partially_succeeded',
       steps: [
@@ -236,7 +236,7 @@ describe('Vista previa del pedido (HU-040)', () => {
     <GenerationPreview preview={preview} submitting={submitting} onConfirm={() => undefined} onEdit={() => undefined} />,
   );
 
-  it('muestra una fila por paso en orden 5E, el contexto elegido y el total', () => {
+  it('muestra una fila por paso en el orden de las etapas, el contexto elegido y el total', () => {
     const markup = html();
     const rows = markup.match(/<tr><td>\d+<\/td><td>[^<]+<\/td><th scope="row">[^<]+<\/th><td>\d+<\/td><\/tr>/g);
     expect(rows).toEqual([

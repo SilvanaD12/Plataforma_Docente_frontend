@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '../../../shared/api/httpClient';
-import type { DistractorDecision, Resource } from './resource';
+import {
+  parsePlanWarning,
+  parseStaleDocuments,
+  type DistractorDecision,
+  type Resource,
+} from './resource';
 import {
   CONFLICT_MESSAGE,
+  PLAN_EVIDENCE_STALE_MESSAGE,
   RESET_NOTICE,
   RETRY_NEEDS_SAVE,
   afterApprovalSuccess,
@@ -351,5 +357,90 @@ describe('descartar con motivo', () => {
     expect(withStatus(discarded.draft, 'pendiente')).toMatchObject({ status: 'pendiente', discardReason: null });
     expect(canRestore(startEditing(resource()))).toBe(false);
     expect(canRestore(startRequest(discarded))).toBe(false);
+  });
+});
+
+describe('T014 y F3: validación de modelos y errores de regeneración', () => {
+  it('parsePlanWarning valida estructuras overlap y missing_concepts', () => {
+    const overlap = parsePlanWarning({
+      kind: 'overlap',
+      reason: 'Se cubren conceptos duplicados.',
+      developedConcepts: ['TCP', 'UDP'],
+      missingOwnConcepts: [],
+    });
+    expect(overlap).toEqual({
+      kind: 'overlap',
+      reason: 'Se cubren conceptos duplicados.',
+      developedConcepts: ['TCP', 'UDP'],
+      missingOwnConcepts: [],
+    });
+
+    const missing = parsePlanWarning({
+      kind: 'missing_concepts',
+      reason: 'Faltan conceptos asignados.',
+      developedConcepts: [],
+      missingOwnConcepts: ['DNS'],
+    });
+    expect(missing).toEqual({
+      kind: 'missing_concepts',
+      reason: 'Faltan conceptos asignados.',
+      developedConcepts: [],
+      missingOwnConcepts: ['DNS'],
+    });
+
+    expect(parsePlanWarning(null)).toBeNull();
+    expect(parsePlanWarning(undefined)).toBeNull();
+    expect(parsePlanWarning({ kind: 'other' })).toBeNull();
+    expect(parsePlanWarning({ kind: 'overlap', reason: 123 })).toBeNull();
+    expect(parsePlanWarning({ kind: 'overlap', reason: '', developedConcepts: [1] })).toBeNull();
+  });
+
+  it('parseStaleDocuments valida documentos y fragmentos faltantes', () => {
+    const valid = parseStaleDocuments([
+      { documentId: 'doc-1', documentName: 'Apuntes.pdf', missingFragmentIds: ['f1', 'f2'] },
+      { documentId: 'doc-2', documentName: 'Guia.pdf', missingFragmentIds: ['f3'] },
+    ]);
+    expect(valid).toHaveLength(2);
+    expect(valid?.[0]).toEqual({
+      documentId: 'doc-1',
+      documentName: 'Apuntes.pdf',
+      missingFragmentIds: ['f1', 'f2'],
+    });
+
+    expect(parseStaleDocuments(null)).toBeNull();
+    expect(parseStaleDocuments([])).toBeNull();
+    expect(parseStaleDocuments('invalido')).toBeNull();
+    expect(parseStaleDocuments([{ documentId: 'doc-1' }])).toBeNull();
+    expect(parseStaleDocuments([{ documentId: 'doc-1', documentName: 'Doc', missingFragmentIds: [] }])).toBeNull();
+  });
+
+  it('afterSaveFailure con PLAN_EVIDENCE_STALE guarda mensaje y documentos desactualizados', () => {
+    const errorWithDetails = new ApiError(409, 'Error base', 'PLAN_EVIDENCE_STALE', [
+      { documentId: 'doc-1', documentName: 'Redes.pdf', missingFragmentIds: ['f1', 'f2', 'f3'] },
+      { documentId: 'doc-2', documentName: 'Sistemas.pdf', missingFragmentIds: ['f4'] },
+    ]);
+    const state = afterSaveFailure(startEditing(resource()), errorWithDetails);
+    expect(state.error).toBe(PLAN_EVIDENCE_STALE_MESSAGE);
+    expect(state.staleDocuments).toEqual([
+      { documentId: 'doc-1', documentName: 'Redes.pdf', missingFragmentIds: ['f1', 'f2', 'f3'] },
+      { documentId: 'doc-2', documentName: 'Sistemas.pdf', missingFragmentIds: ['f4'] },
+    ]);
+    expect(state.conflict).toBe(false);
+    expect(state.pending).toBe(false);
+    expect(canEdit(state)).toBe(true);
+  });
+
+  it('afterSaveFailure con PLAN_EVIDENCE_STALE y details inválido deja staleDocuments en null', () => {
+    const errorWithoutDetails = new ApiError(409, 'Error base', 'PLAN_EVIDENCE_STALE', null);
+    const state = afterSaveFailure(startEditing(resource()), errorWithoutDetails);
+    expect(state.error).toBe(PLAN_EVIDENCE_STALE_MESSAGE);
+    expect(state.staleDocuments).toBeNull();
+  });
+
+  it('afterSaveFailure con otro error de API conserva el mensaje original y staleDocuments null', () => {
+    const error502 = new ApiError(502, 'Generación no pudo completar el recurso.', 'REGENERATION_FAILED');
+    const state = afterSaveFailure(startEditing(resource()), error502);
+    expect(state.error).toBe('Generación no pudo completar el recurso.');
+    expect(state.staleDocuments).toBeNull();
   });
 });

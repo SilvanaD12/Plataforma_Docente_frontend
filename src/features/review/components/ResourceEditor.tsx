@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import {
   RESOURCE_DISCARD_REASONS,
   discardReasonLabel,
+  parsePlanWarning,
   reviewStatusLabel,
   type DiscardReason,
   type DistractorDecision,
@@ -27,6 +28,7 @@ import {
   startEditing,
   startRequest,
   withStatus,
+  type EditorState,
 } from '../model/reviewEditor';
 import {
   addStructureItem,
@@ -54,6 +56,8 @@ interface ResourceEditorProps {
    * editor muestra el motivo y el recurso queda como estaba (REV-C13). Sin ella no se ofrece el botón.
    */
   onRegenerate?: (resource: Resource) => Promise<void>;
+  /** Estado inicial opcional, usado en pruebas para verificar vistas de error o conflicto. */
+  initialState?: EditorState;
 }
 
 const DECISIONS: { value: DistractorDecision; label: string }[] = [
@@ -66,8 +70,16 @@ const DECISIONS: { value: DistractorDecision; label: string }[] = [
  * Edición y aprobación de un recurso. Las reglas de qué hacer con cada resultado (conflicto de versión, aprobación
  * bloqueada, vuelta a revisión) están en `model/reviewEditor`; aquí solo se usan.
  */
-export function ResourceEditor({ resource, onSave, onReload, onRetry, onGenerateMedia, onRegenerate }: ResourceEditorProps) {
-  const [state, setState] = useState(() => startEditing(resource));
+export function ResourceEditor({
+  resource,
+  onSave,
+  onReload,
+  onRetry,
+  onGenerateMedia,
+  onRegenerate,
+  initialState,
+}: ResourceEditorProps) {
+  const [state, setState] = useState(() => initialState ?? startEditing(resource));
   const [reason, setReason] = useState<DiscardReason>('sin_sentido');
   const inFlight = useRef(false);
   const { draft, saved } = state;
@@ -75,6 +87,7 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry, onGenerate
   const schema = structureSchema(draft.type);
   const fieldId = (name: string) => `${saved.id}-${name}`;
   const media = mediaView(state);
+  const planWarning = parsePlanWarning(saved.planWarning);
 
   async function run(action: () => Promise<Resource>, onSuccess = afterSaveSuccess) {
     if (inFlight.current) return;
@@ -109,6 +122,18 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry, onGenerate
       <p className="overline">{reviewStatusLabel(saved.status)}</p>
       {saved.status === 'descartado' && discardReasonLabel(saved.discardReason) && (
         <p className="muted">Motivo: {discardReasonLabel(saved.discardReason)}</p>
+      )}
+      {planWarning && (
+        <div className="alert plan-warning" role="status" aria-label="Aviso pedagógico del plan">
+          <div className="plan-warning__body">
+            <p>
+              {planWarning.kind === 'overlap'
+                ? `Este recurso desarrolla conceptos asignados a otro recurso del plan: ${planWarning.developedConcepts.join(', ')}.`
+                : `Este recurso no desarrolla los conceptos que le asignó el plan: ${planWarning.missingOwnConcepts.join(', ')}.`}
+            </p>
+            {planWarning.reason && <p className="muted">{planWarning.reason}</p>}
+          </div>
+        </div>
       )}
       {media && (
         <div className="verification verification--blocked" role="alert">
@@ -201,7 +226,24 @@ export function ResourceEditor({ resource, onSave, onReload, onRetry, onGenerate
         </ul>
       )}
       {state.notice && <p className="alert" role="status">{state.notice}</p>}
-      {state.error && <p className="alert alert--warn" role="alert">{state.error}</p>}
+      {state.error && (
+        <div className="alert alert--warn" role="alert">
+          {state.staleDocuments && state.staleDocuments.length > 0 ? (
+            <div className="stale-documents">
+              <p>{state.error}</p>
+              <ul className="stale-documents-list">
+                {state.staleDocuments.map((doc) => (
+                  <li key={doc.documentId}>
+                    {doc.documentName}: {doc.missingFragmentIds.length === 1 ? 'falta 1 fragmento' : `faltan ${doc.missingFragmentIds.length} fragmentos`}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p>{state.error}</p>
+          )}
+        </div>
+      )}
 
       <div className="stack">
         {state.conflict ? (

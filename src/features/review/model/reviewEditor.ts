@@ -1,6 +1,13 @@
 import { ApiError, errorMessage } from '../../../shared/api/httpClient';
 import { isVersionConflict } from '../api/reviewApi';
-import type { DiscardReason, DistractorDecision, Resource, ReviewStatus } from './resource';
+import {
+  parseStaleDocuments,
+  type DiscardReason,
+  type DistractorDecision,
+  type Resource,
+  type ReviewStatus,
+  type StaleDocument,
+} from './resource';
 import { structureProblem } from './structureRules';
 
 /** Estado de la edición de un recurso: lo guardado en el servidor y el borrador del docente. */
@@ -9,6 +16,8 @@ export interface EditorState {
   draft: Resource;
   notice: string | null;
   error: string | null;
+  /** Documentos desactualizados devueltos en error PLAN_EVIDENCE_STALE al regenerar (T014). */
+  staleDocuments?: StaleDocument[] | null;
   /** El recurso cambió en otra pestaña: hay que recargar antes de volver a guardar (REV-C14). */
   conflict: boolean;
   /**
@@ -23,9 +32,11 @@ export const CONFLICT_MESSAGE =
 export const RETRY_NEEDS_SAVE = 'Guarda los cambios para comprobar el texto nuevo.';
 export const RESET_NOTICE =
   'El recurso estaba aprobado y cambió su contenido: volvió a revisión y necesita una nueva aprobación.';
+export const PLAN_EVIDENCE_STALE_MESSAGE =
+  'No se pudo regenerar: cambió el material en que se basaba este recurso. Para regenerarlo, crea un plan nuevo.';
 
 export function startEditing(resource: Resource): EditorState {
-  return { saved: resource, draft: resource, notice: null, error: null, conflict: false, pending: false };
+  return { saved: resource, draft: resource, notice: null, error: null, staleDocuments: null, conflict: false, pending: false };
 }
 
 export function startRequest(state: EditorState): EditorState {
@@ -171,7 +182,7 @@ export function approvalHint(state: EditorState): string | null {
 }
 
 export function afterSaveSuccess(state: EditorState, saved: Resource): EditorState {
-  return { saved, draft: saved, notice: saved.reviewReset ? RESET_NOTICE : null, error: null, conflict: false, pending: false };
+  return { saved, draft: saved, notice: saved.reviewReset ? RESET_NOTICE : null, error: null, staleDocuments: null, conflict: false, pending: false };
 }
 
 export function afterApprovalSuccess(state: EditorState, saved: Resource): EditorState {
@@ -186,14 +197,27 @@ export function afterApprovalSuccess(state: EditorState, saved: Resource): Edito
 export function afterRetrySuccess(state: EditorState, checked: Resource): EditorState {
   if (!isDirty(state)) return afterSaveSuccess(state, checked);
   const draft = { ...state.draft, verification: checked.verification, approvalBlockers: checked.approvalBlockers };
-  return { ...state, saved: checked, draft, notice: null, error: null, pending: false };
+  return { ...state, saved: checked, draft, notice: null, error: null, staleDocuments: null, pending: false };
 }
 
 /** Un error al guardar nunca descarta el borrador del docente. */
 export function afterSaveFailure(state: EditorState, error: unknown): EditorState {
-  if (isVersionConflict(error)) return { ...state, notice: null, error: CONFLICT_MESSAGE, conflict: true, pending: false };
+  if (isVersionConflict(error)) {
+    return { ...state, notice: null, error: CONFLICT_MESSAGE, staleDocuments: null, conflict: true, pending: false };
+  }
+  if (error instanceof ApiError && error.code === 'PLAN_EVIDENCE_STALE') {
+    const staleDocuments = parseStaleDocuments(error.details);
+    return {
+      ...state,
+      notice: null,
+      error: PLAN_EVIDENCE_STALE_MESSAGE,
+      staleDocuments,
+      conflict: false,
+      pending: false,
+    };
+  }
   const message = error instanceof ApiError ? error.message : errorMessage(error);
-  return { ...state, notice: null, error: message, conflict: false, pending: false };
+  return { ...state, notice: null, error: message, staleDocuments: null, conflict: false, pending: false };
 }
 
 export function reloadLatest(_state: EditorState, latest: Resource): EditorState {

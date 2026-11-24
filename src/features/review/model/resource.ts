@@ -100,6 +100,67 @@ export interface Resource {
   approvalBlockers: string[];
   /** Solo en la respuesta de un guardado: un recurso aprobado cambió su contenido y volvió a revisión. */
   reviewReset?: boolean | null;
+  /** Aviso pedagógico no bloqueante devuelto por el servidor cuando el recurso proviene de un plan. */
+  planWarning?: PlanWarning | null;
+}
+
+export type PlanWarningKind = 'overlap' | 'missing_concepts';
+
+export interface PlanWarning {
+  kind: PlanWarningKind;
+  reason: string;
+  developedConcepts: string[];
+  missingOwnConcepts: string[];
+}
+
+export function parsePlanWarning(value: unknown): PlanWarning | null {
+  if (!value || typeof value !== 'object') return null;
+  const raw = value as Record<string, unknown>;
+  if (raw.kind !== 'overlap' && raw.kind !== 'missing_concepts') return null;
+  if (typeof raw.reason !== 'string') return null;
+  if (!Array.isArray(raw.developedConcepts) || !raw.developedConcepts.every((c) => typeof c === 'string')) {
+    return null;
+  }
+  if (!Array.isArray(raw.missingOwnConcepts) || !raw.missingOwnConcepts.every((c) => typeof c === 'string')) {
+    return null;
+  }
+  return {
+    kind: raw.kind,
+    reason: raw.reason,
+    developedConcepts: raw.developedConcepts,
+    missingOwnConcepts: raw.missingOwnConcepts,
+  };
+}
+
+export interface StaleDocument {
+  documentId: string;
+  documentName: string;
+  missingFragmentIds: string[];
+}
+
+export function parseStaleDocuments(value: unknown): StaleDocument[] | null {
+  if (!Array.isArray(value) || value.length === 0) return null;
+  const parsed: StaleDocument[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== 'object') return null;
+    const raw = item as Record<string, unknown>;
+    if (typeof raw.documentId !== 'string' || typeof raw.documentName !== 'string') {
+      return null;
+    }
+    if (
+      !Array.isArray(raw.missingFragmentIds) ||
+      raw.missingFragmentIds.length === 0 ||
+      !raw.missingFragmentIds.every((id) => typeof id === 'string')
+    ) {
+      return null;
+    }
+    parsed.push({
+      documentId: raw.documentId,
+      documentName: raw.documentName,
+      missingFragmentIds: raw.missingFragmentIds,
+    });
+  }
+  return parsed;
 }
 
 const REVIEW_STATUS_LABELS: Record<ReviewStatus, string> = {

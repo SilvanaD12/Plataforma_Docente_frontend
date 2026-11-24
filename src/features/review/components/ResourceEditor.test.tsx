@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import type { Resource } from '../model/resource';
+import { PLAN_EVIDENCE_STALE_MESSAGE, startEditing, type EditorState } from '../model/reviewEditor';
 import { ResourceEditor } from './ResourceEditor';
 
 function resource(overrides: Partial<Resource> = {}): Resource {
@@ -128,5 +129,120 @@ describe('regenerar el recurso', () => {
 
   it('un recurso descartado no lo ofrece', () => {
     expect(renderWith(resource({ status: 'descartado', discardReason: 'otro', approvalBlockers: [] }))).not.toContain('>Regenerar<');
+  });
+});
+
+describe('aviso pedagógico del plan (planWarning)', () => {
+  it('con aviso "overlap" muestra el texto formateado y el motivo pedagógico', () => {
+    const value = resource({
+      planWarning: {
+        kind: 'overlap',
+        reason: 'Se cubren conceptos previstos para la siguiente sesión.',
+        developedConcepts: ['Enrutamiento', 'Subredes'],
+        missingOwnConcepts: [],
+      },
+    });
+    const html = render(value);
+    expect(html).toContain('Este recurso desarrolla conceptos asignados a otro recurso del plan: Enrutamiento, Subredes.');
+    expect(html).toContain('Se cubren conceptos previstos para la siguiente sesión.');
+    expect(html).toContain('role="status"');
+  });
+
+  it('con aviso "missing_concepts" muestra el texto formateado y el motivo', () => {
+    const value = resource({
+      planWarning: {
+        kind: 'missing_concepts',
+        reason: 'El generador omitió conceptos obligatorios.',
+        developedConcepts: [],
+        missingOwnConcepts: ['DNS', 'DHCP'],
+      },
+    });
+    const html = render(value);
+    expect(html).toContain('Este recurso no desarrolla los conceptos que le asignó el plan: DNS, DHCP.');
+    expect(html).toContain('El generador omitió conceptos obligatorios.');
+  });
+
+  it('con planWarning null o indefinido no muestra aviso', () => {
+    const html = render(resource({ planWarning: null }));
+    expect(html).not.toContain('Aviso pedagógico del plan');
+    expect(html).not.toContain('desarrolla conceptos asignados');
+  });
+
+  it('con una forma inválida en planWarning no rompe la pantalla y no muestra aviso', () => {
+    const value = resource({
+      planWarning: {
+        kind: 'invalido' as unknown as 'overlap',
+        reason: '',
+        developedConcepts: [],
+        missingOwnConcepts: [],
+      },
+    });
+    const html = render(value);
+    expect(html).not.toContain('Aviso pedagógico del plan');
+    expect(html).toContain('¿Qué protocolo confirma la entrega?');
+  });
+
+  it('el aviso planWarning no bloquea el botón Aprobar', () => {
+    const value = resource({
+      options: null,
+      approvalBlockers: [],
+      planWarning: {
+        kind: 'overlap',
+        reason: 'Solapamiento no crítico.',
+        developedConcepts: ['TCP'],
+        missingOwnConcepts: [],
+      },
+    });
+    const html = render(value);
+    expect(html).toMatch(/<button(?![^>]*disabled="")[^>]*>Aprobar<\/button>/);
+  });
+});
+
+describe('rechazo de regeneración por evidencia desactualizada (T014)', () => {
+  it('con 409 PLAN_EVIDENCE_STALE y dos documentos muestra mensaje y lista con fragmentos faltantes', () => {
+    const base = resource();
+    const state: EditorState = {
+      ...startEditing(base),
+      error: PLAN_EVIDENCE_STALE_MESSAGE,
+      staleDocuments: [
+        { documentId: 'doc-1', documentName: 'Apuntes.pdf', missingFragmentIds: ['f1', 'f2', 'f3'] },
+        { documentId: 'doc-2', documentName: 'Guia.pdf', missingFragmentIds: ['f4'] },
+      ],
+    };
+    const html = renderToStaticMarkup(
+      <ResourceEditor resource={base} onSave={noop} onReload={noop} onRetry={noop} initialState={state} />,
+    );
+    expect(html).toContain(PLAN_EVIDENCE_STALE_MESSAGE);
+    expect(html).toContain('Apuntes.pdf: faltan 3 fragmentos');
+    expect(html).toContain('Guia.pdf: falta 1 fragmento');
+    expect(html).toContain('role="alert"');
+  });
+
+  it('con PLAN_EVIDENCE_STALE y details inválido/vacío muestra solo el mensaje sin lista', () => {
+    const base = resource();
+    const state: EditorState = {
+      ...startEditing(base),
+      error: PLAN_EVIDENCE_STALE_MESSAGE,
+      staleDocuments: null,
+    };
+    const html = renderToStaticMarkup(
+      <ResourceEditor resource={base} onSave={noop} onReload={noop} onRetry={noop} initialState={state} />,
+    );
+    expect(html).toContain(PLAN_EVIDENCE_STALE_MESSAGE);
+    expect(html).not.toContain('stale-documents-list');
+  });
+
+  it('otros errores de regeneración siguen mostrándose como antes', () => {
+    const base = resource();
+    const state: EditorState = {
+      ...startEditing(base),
+      error: 'Generación no pudo completar el recurso.',
+      staleDocuments: null,
+    };
+    const html = renderToStaticMarkup(
+      <ResourceEditor resource={base} onSave={noop} onReload={noop} onRetry={noop} initialState={state} />,
+    );
+    expect(html).toContain('Generación no pudo completar el recurso.');
+    expect(html).not.toContain('stale-documents-list');
   });
 });

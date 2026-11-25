@@ -22,7 +22,7 @@ const unitWithOutcomes = {
 };
 
 describe('MaterialUploadForm', () => {
-  it('renderiza los campos de selección de archivo, tipo de documento y autorización', () => {
+  it('renderiza los campos de selección de archivo, tipo de documento y autorización sin mencionar 5E', () => {
     const html = renderToStaticMarkup(
       <MaterialUploadForm
         unit={unitWithoutOutcomes}
@@ -35,7 +35,8 @@ describe('MaterialUploadForm', () => {
     expect(html).toContain('Archivo (PDF, PPTX o TXT hasta 25 MB)');
     expect(html).toContain('Tipo de documento');
     expect(html).toContain('Separata o apuntes de clase');
-    expect(html).toContain('Autorizo el procesamiento de este material');
+    expect(html).toContain('Autorizo el procesamiento de este material para la generación de recursos.');
+    expect(html).not.toContain('generación de recursos 5E');
     expect(html).toContain('Subir material');
     expect(html).not.toContain('Resultados de aprendizaje de la unidad');
   });

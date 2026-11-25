@@ -161,6 +161,12 @@
   margin-bottom: var(--space-4);
 }
 
+.duplication-warning--cross-unit {
+  border-color: var(--color-line);
+  border-left-color: var(--color-accent);
+  background: var(--color-surface);
+}
+
 .duplication-warning__title {
   font-weight: 600;
   margin: 0;

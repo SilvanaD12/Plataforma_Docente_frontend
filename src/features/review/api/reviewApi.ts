@@ -99,6 +99,9 @@ export interface FlaggedPair {
   score: number;
   excerptA: string;
   excerptB: string;
+  crossUnit?: boolean;
+  unitIdB?: string | null;
+  unitTitleB?: string | null;
 }
 
 export interface DuplicationReport {
@@ -108,10 +111,11 @@ export interface DuplicationReport {
   duplicatePairRate: number;
 }
 
-/** REV-P3: consulta el reporte de duplicidad de la unidad. */
-export function getDuplicationReport(token: string, unitId: string) {
+/** REV-P3 / REV-P4: consulta el reporte de duplicidad de la unidad (y opcionalmente del curso). */
+export function getDuplicationReport(token: string, unitId: string, includeCourse = true) {
+  const query = includeCourse ? '?includeCourse=true' : '';
   return request<DuplicationReport>(
-    '/units/' + encodeURIComponent(unitId) + '/duplication-report',
+    '/units/' + encodeURIComponent(unitId) + '/duplication-report' + query,
     'GET',
     undefined,
     token,

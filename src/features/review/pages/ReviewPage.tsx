@@ -118,6 +118,14 @@ export function ReviewPageContent({
   }
 
   const message = listMessage(state);
+  const flaggedPairs = duplicationReport?.flaggedPairs ?? [];
+  const withinUnitPairs = flaggedPairs.filter((pair) => !pair.crossUnit);
+  const crossUnitPairs = flaggedPairs.filter((pair) => pair.crossUnit === true);
+  const resourceTitleById = (id: string) => {
+    const match = state.status === 'ready' ? state.resources.find((r) => r.id === id) : null;
+    return match ? `«${match.title}»` : `Recurso ${id}`;
+  };
+
   return (
     <section className="stack">
       <h2 className="h2">Revisión</h2>
@@ -129,15 +137,13 @@ export function ReviewPageContent({
       {notice && (
         <p className={notice.warn ? 'alert alert--warn' : 'alert'} role={notice.warn ? 'alert' : 'status'}>{notice.text}</p>
       )}
-      {duplicationReport && duplicationReport.flaggedPairs.length > 0 && (
+      {withinUnitPairs.length > 0 && (
         <aside className="duplication-warning" role="region" aria-label="Aviso de posible contenido repetido">
           <p className="duplication-warning__title">Aviso: posible contenido repetido</p>
           <ul className="duplication-warning__list">
-            {duplicationReport.flaggedPairs.map((pair, idx) => {
-              const resA = state.status === 'ready' ? state.resources.find((r) => r.id === pair.resourceIdA) : null;
-              const resB = state.status === 'ready' ? state.resources.find((r) => r.id === pair.resourceIdB) : null;
-              const titleA = resA ? `«${resA.title}»` : `Recurso ${pair.resourceIdA}`;
-              const titleB = resB ? `«${resB.title}»` : `Recurso ${pair.resourceIdB}`;
+            {withinUnitPairs.map((pair, idx) => {
+              const titleA = resourceTitleById(pair.resourceIdA);
+              const titleB = resourceTitleById(pair.resourceIdB);
               const pct = Math.round(pair.score * 100);
               const label = pair.scope === 'question' ? 'pregunta repetida' : 'contenido repetido';
               return (
@@ -155,6 +161,41 @@ export function ReviewPageContent({
                     </a>
                     <a href={`#${pair.resourceIdB}`} className="duplication-warning__link">
                       Ir a {titleB}
+                    </a>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </aside>
+      )}
+      {crossUnitPairs.length > 0 && (
+        <aside
+          className="duplication-warning duplication-warning--cross-unit"
+          role="region"
+          aria-label="Aviso de contenido repetido en otras unidades"
+        >
+          <p className="duplication-warning__title">Posible contenido repetido en otras unidades</p>
+          <ul className="duplication-warning__list">
+            {crossUnitPairs.map((pair, idx) => {
+              const titleA = resourceTitleById(pair.resourceIdA);
+              const unitTitleB = pair.unitTitleB ?? pair.unitIdB ?? 'otra unidad';
+              const pct = Math.round(pair.score * 100);
+              return (
+                <li
+                  key={`${pair.resourceIdA}-${pair.unitIdB ?? 'unit'}-${pair.resourceIdB}-${idx}`}
+                  className="duplication-warning__item"
+                >
+                  <span>
+                    Se parece a un recurso de la unidad «{unitTitleB}» ({pct} %): {titleA}
+                  </span>
+                  <div className="duplication-warning__excerpt">
+                    <p>Extracto A: {pair.excerptA}</p>
+                    <p>Extracto B: {pair.excerptB}</p>
+                  </div>
+                  <div className="duplication-warning__links">
+                    <a href={`#${pair.resourceIdA}`} className="duplication-warning__link">
+                      Ir a {titleA}
                     </a>
                   </div>
                 </li>

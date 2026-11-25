@@ -66,6 +66,28 @@ test('QA-09: evalúa la accesibilidad de las pantallas del sprint', async ({ pag
   await mockApi(page);
   await page.route('**/api/v1/documents', (route) => route.fulfill({ json: [material] }));
   await page.route(`**/api/v1/units/${UNIT.id}/resources`, (route) => route.fulfill({ json: [resource] }));
+  await page.route(`**/api/v1/units/${UNIT.id}/duplication-report*`, (route) =>
+    route.fulfill({
+      json: {
+        threshold: 0.7,
+        comparedPairs: 1,
+        duplicatePairRate: 1,
+        flaggedPairs: [
+          {
+            resourceIdA: resource.id,
+            resourceIdB: 'qa09-other-unit-resource',
+            scope: 'resource',
+            score: 0.88,
+            excerptA: 'TCP establece una conexión.',
+            excerptB: 'El protocolo TCP inicia una conexión.',
+            crossUnit: true,
+            unitIdB: 'unidad-2',
+            unitTitleB: 'Redes avanzadas',
+          },
+        ],
+      },
+    }),
+  );
   await page.route('**/api/v1/generation-requests/interpret', async (route) => {
     await route.fulfill({
       status: 200,
@@ -110,6 +132,7 @@ test('QA-09: evalúa la accesibilidad de las pantallas del sprint', async ({ pag
   await scan(page, 'Generación con la vista previa abierta');
 
   await page.goto(`${unitPath}/review`);
+  await expect(page.getByRole('region', { name: 'Aviso de contenido repetido en otras unidades' })).toBeVisible();
   const title = page.getByRole('textbox', { name: 'Título', exact: true });
   await expect(title).toHaveValue(resource.title);
   await expect(title).toBeEditable();

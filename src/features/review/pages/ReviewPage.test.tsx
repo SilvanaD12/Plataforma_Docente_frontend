@@ -100,6 +100,95 @@ describe('pestaña de revisión', () => {
     expect(html).toContain('href="#rec-1"');
     expect(html).toContain('Ir a «Funcionamiento de TCP»');
     expect(html).toContain('href="#rec-2"');
+    expect(html).not.toContain('Posible contenido repetido en otras unidades');
+  });
+
+  it('muestra el bloque entre unidades cuando hay pares con crossUnit=true (REV-P4)', () => {
+    const report: DuplicationReport = {
+      comparedPairs: 2,
+      duplicatePairRate: 0.5,
+      threshold: 0.70,
+      flaggedPairs: [
+        {
+          resourceIdA: 'rec-1',
+          resourceIdB: 'rec-u2',
+          scope: 'resource',
+          score: 0.91,
+          excerptA: 'TCP garantiza la entrega ordenada de los segmentos.',
+          excerptB: 'El protocolo TCP asegura una entrega confiable y en orden.',
+          crossUnit: true,
+          unitIdB: 'unidad-2',
+          unitTitleB: 'Unidad 2: Redes avanzadas',
+        },
+      ],
+    };
+
+    const resources = [resource('rec-1', 'Protocolo TCP')];
+
+    const html = renderToStaticMarkup(
+      <ReviewPageContent
+        token="token"
+        unitId="unidad-1"
+        onSessionExpired={() => {}}
+        initialReport={report}
+        initialState={{ status: 'ready', resources }}
+      />,
+    );
+
+    expect(html).not.toContain('Aviso: posible contenido repetido');
+    expect(html).toContain('aria-label="Aviso de contenido repetido en otras unidades"');
+    expect(html).toContain('Posible contenido repetido en otras unidades');
+    expect(html).toContain('Se parece a un recurso de la unidad «Unidad 2: Redes avanzadas» (91 %)');
+    expect(html).toContain('Extracto A: TCP garantiza la entrega ordenada de los segmentos.');
+    expect(html).toContain('Extracto B: El protocolo TCP asegura una entrega confiable y en orden.');
+    expect(html).toContain('href="#rec-1"');
+    expect(html).not.toMatch(/5E|Gemini|Wikipedia/);
+  });
+
+  it('muestra ambos bloques si hay duplicados internos y entre unidades a la vez', () => {
+    const report: DuplicationReport = {
+      comparedPairs: 3,
+      duplicatePairRate: 0.667,
+      threshold: 0.7,
+      flaggedPairs: [
+        {
+          resourceIdA: 'rec-1',
+          resourceIdB: 'rec-u2',
+          scope: 'resource',
+          score: 0.92,
+          excerptA: 'A1',
+          excerptB: 'B2',
+          crossUnit: true,
+          unitIdB: 'unidad-2',
+          unitTitleB: 'Unidad 2',
+        },
+        {
+          resourceIdA: 'rec-1',
+          resourceIdB: 'rec-2',
+          scope: 'resource',
+          score: 0.85,
+          excerptA: 'A1',
+          excerptB: 'A2',
+          crossUnit: false,
+          unitIdB: null,
+          unitTitleB: null,
+        },
+      ],
+    };
+
+    const html = renderToStaticMarkup(
+      <ReviewPageContent
+        token="token"
+        unitId="unidad-1"
+        onSessionExpired={() => {}}
+        initialReport={report}
+        initialState={{ status: 'ready', resources: [resource('rec-1', 'R1'), resource('rec-2', 'R2')] }}
+      />,
+    );
+
+    expect(html).toContain('Aviso: posible contenido repetido');
+    expect(html).toContain('Posible contenido repetido en otras unidades');
+    expect(html).toContain('Se parece a un recurso de la unidad «Unidad 2» (92 %)');
   });
 
   it('si falla la comprobación de duplicados muestra aviso discreto sin bloquear los recursos', () => {

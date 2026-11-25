@@ -285,7 +285,10 @@ export function ReviewPageContent({
   }
 
   const message = listMessage(state);
+<<<<<<< HEAD
   const grouped = state.status === 'ready' ? groupResourcesByStatus(state.resources) : null;
+=======
+>>>>>>> origin/main
   const flaggedPairs = duplicationReport?.flaggedPairs ?? [];
   const withinUnitPairs = flaggedPairs.filter((pair) => !pair.crossUnit);
   const crossUnitPairs = flaggedPairs.filter((pair) => pair.crossUnit === true);
@@ -310,10 +313,15 @@ export function ReviewPageContent({
           <p className="duplication-warning__title">Aviso: posible contenido repetido</p>
           <ul className="duplication-warning__list">
             {withinUnitPairs.map((pair, idx) => {
+<<<<<<< HEAD
               const resA = state.status === 'ready' ? state.resources.find((r) => r.id === pair.resourceIdA) : null;
               const resB = state.status === 'ready' ? state.resources.find((r) => r.id === pair.resourceIdB) : null;
               const titleA = resA ? `«${resA.title}»` : `Recurso ${pair.resourceIdA}`;
               const titleB = resB ? `«${resB.title}»` : `Recurso ${pair.resourceIdB}`;
+=======
+              const titleA = resourceTitleById(pair.resourceIdA);
+              const titleB = resourceTitleById(pair.resourceIdB);
+>>>>>>> origin/main
               const pct = Math.round(pair.score * 100);
               const label = pair.scope === 'question' ? 'pregunta repetida' : 'contenido repetido';
               return (
@@ -372,11 +380,15 @@ export function ReviewPageContent({
                     <p>Extracto B: {pair.excerptB}</p>
                   </div>
                   <div className="duplication-warning__links">
+<<<<<<< HEAD
                     <a
                       href={`#${pair.resourceIdA}`}
                       className="duplication-warning__link"
                       onClick={(event) => navigateToDuplicate(event, pair.resourceIdA)}
                     >
+=======
+                    <a href={`#${pair.resourceIdA}`} className="duplication-warning__link">
+>>>>>>> origin/main
                       Ir a {titleA}
                     </a>
                   </div>
@@ -386,6 +398,7 @@ export function ReviewPageContent({
           </ul>
         </aside>
       )}
+<<<<<<< HEAD
       {grouped && state.status === 'ready' && state.resources.length > 0 && (
         <div className="stack stack--loose">
           <p className="review-summary-bar" aria-label="Resumen de recursos por estado">
@@ -480,6 +493,18 @@ export function ReviewPageContent({
               </section>
             );
           })}
+=======
+      {state.status === 'ready' && state.resources.map((resource) => (
+        <div key={`${resource.id}:${remounts[resource.id] ?? 0}`} id={resource.id}>
+          <ResourceEditor
+            resource={resource}
+            onSave={(draft) => track(saveResource(token, draft))}
+            onReload={() => track(getResource(token, unitId, resource.id))}
+            onRetry={(current) => track(retryVerification(token, current))}
+            onGenerateMedia={(current) => track(regenerateMedia(token, current))}
+            onRegenerate={regenerate}
+          />
+>>>>>>> origin/main
         </div>
       )}
     </section>

@@ -4,13 +4,14 @@ import { getDuplicationReport, type DuplicationReport } from '../api/reviewApi';
 import type { Resource } from '../model/resource';
 import { ReviewPageContent } from './ReviewPage';
 
-function resource(id: string, title: string): Resource {
+function resource(id: string, title: string, overrides: Partial<Resource> = {}): Resource {
   return {
     id, unitId: 'unidad-1', outcomeId: null, stage: 'evaluate', type: 'item_opcion_multiple',
     title, body: 'Texto', bodyHtml: null, format: 'text', structure: null, media: null,
     options: [], citations: [], status: 'pendiente', edited: false, discardReason: null,
     createdAt: '2026-11-08T15:00:00+00:00', updatedAt: null, decidedAt: null, evidence: [],
     version: 1, verification: null, approvalBlockers: [],
+    ...overrides,
   };
 }
 
@@ -224,5 +225,57 @@ describe('pestaña de revisión', () => {
 
     expect(getDuplicationReport).toHaveBeenCalledTimes(1);
     expect(getDuplicationReport).toHaveBeenCalledWith('token', 'unidad-1');
+  });
+
+  it('agrupa en tres secciones con contadores, abre solo Pendientes por defecto y ordena por etapa', () => {
+    const resources = [
+      resource('p-eval', 'Pregunta final', { stage: 'evaluate' }),
+      resource('p-eng', 'Pregunta inicial', { stage: 'engage' }),
+      resource('a-1', 'Glosario aprobado', { status: 'aprobado', decidedAt: '2026-11-25T10:00:00Z' }),
+      resource('d-1', 'Guía descartada', { status: 'descartado', discardReason: 'duplicado' }),
+    ];
+
+    const html = renderToStaticMarkup(
+      <ReviewPageContent
+        token="token"
+        unitId="unidad-1"
+        onSessionExpired={() => {}}
+        initialState={{ status: 'ready', resources }}
+      />,
+    );
+
+    expect(html).toContain('Pendientes (2) · Aprobados (1) · Descartados (1)');
+    expect(html).toContain('Pendientes de revisión');
+    expect(html).toContain('Aprobados');
+    expect(html).toContain('Descartados');
+    // Sección pendientes abierta, aprobados y descartados plegadas por defecto
+    expect(html).toContain('aria-controls="review-section-pendiente-body"');
+    expect(html).toContain('<div id="review-section-aprobado-body" hidden=""');
+    expect(html).toContain('<div id="review-section-descartado-body" hidden=""');
+    // Orden por etapa dentro de Pendientes: Enganchar antes que Evaluar
+    expect(html.indexOf('Pregunta inicial')).toBeLessThan(html.indexOf('Pregunta final'));
+  });
+
+  it('muestra el aviso «Todo revisado» con enlace a Exportación cuando no quedan pendientes y hay aprobados', () => {
+    const resources = [
+      resource('a-1', 'Recurso aprobado', { status: 'aprobado', decidedAt: '2026-11-25T10:00:00Z' }),
+    ];
+    const html = renderToStaticMarkup(
+      <ReviewPageContent
+        token="token"
+        unitId="unidad-1"
+        exportHref="/courses/c1/units/unidad-1/export"
+        onSessionExpired={() => {}}
+        initialState={{ status: 'ready', resources }}
+        initialOpenSections={{ pendiente: true, aprobado: true, descartado: true }}
+      />,
+    );
+
+    expect(html).toContain('Todo revisado. Ya puedes ir a');
+    expect(html).toContain('href="/courses/c1/units/unidad-1/export"');
+    expect(html).toContain('No hay recursos pendientes.');
+    expect(html).toContain('No hay recursos descartados.');
+    // La tarjeta aprobada está cerrada por defecto aunque su sección esté abierta
+    expect(html).toContain('<div id="a-1-panel" hidden=""');
   });
 });

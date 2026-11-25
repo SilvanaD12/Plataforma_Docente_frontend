@@ -26,7 +26,10 @@ describe('pestaña de exportación', () => {
   });
 
   it('explica qué recursos entran en el archivo', () => {
-    expect(render()).toContain('Solo se exportan los recursos aprobados con el respaldo vigente.');
+    const html = render();
+    expect(html).toContain('Solo se exportan los recursos aprobados con el respaldo vigente.');
+    expect(html).toContain('SCORM (Moodle, Chamilo o Canvas)');
+    expect(html).toContain('En Moodle: Añadir una actividad › Paquete SCORM.');
   });
 
   it('no muestra textos de proveedores ni del modelo 5E', () => {

@@ -14,10 +14,10 @@ export interface ExportFormat {
 export const EXPORT_FORMATS: ExportFormat[] = [
   {
     id: 'scorm_zip',
-    title: 'SCORM (Chamilo o Canvas)',
+    title: 'SCORM (Moodle, Chamilo o Canvas)',
     description: 'Paquete SCORM 1.2: una página por recurso, con sus gráficos, audios y preguntas calificadas.',
     extension: 'zip',
-    howTo: 'En Chamilo: Lecciones › Importar AICC, SCORM y Chamilo. En Canvas: la herramienta SCORM del curso.',
+    howTo: 'En Moodle: Añadir una actividad › Paquete SCORM. En Chamilo: Lecciones › Importar AICC, SCORM y Chamilo. En Canvas: la herramienta SCORM del curso.',
   },
   {
     id: 'moodle_xml',

@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   RESOURCE_DISCARD_REASONS,
   discardReasonLabel,
+  formatApprovalDate,
+  resourceTypeLabel,
   reviewStatusLabel,
+  stageLabel,
   VERIFICATION_LABELS,
   verificationAction,
   verificationLabel,
@@ -69,5 +72,22 @@ describe('motivos para descartar un recurso', () => {
     expect(discardReasonLabel('fuera_de_unidad')).toBe('No corresponde a la unidad');
     expect(discardReasonLabel('regenerado')).toBe('Reemplazado por uno regenerado');
     expect(discardReasonLabel(null)).toBeNull();
+  });
+});
+
+describe('etiquetas y fecha de aprobación', () => {
+  it('traduce etapas y tipos de recurso y respeta desconocidos', () => {
+    expect(stageLabel('engage')).toBe('Enganchar');
+    expect(stageLabel('evaluate')).toBe('Evaluar');
+    expect(stageLabel('custom')).toBe('custom');
+    expect(resourceTypeLabel('glosario')).toBe('Glosario');
+    expect(resourceTypeLabel('item_opcion_multiple')).toBe('Pregunta de opción múltiple');
+    expect(resourceTypeLabel('tipo_nuevo')).toBe('tipo_nuevo');
+  });
+
+  it('formatea decidedAt cuando es una fecha válida y devuelve null si falta o es inválida', () => {
+    expect(formatApprovalDate('2026-11-25T13:30:00+00:00')).toBeTruthy();
+    expect(formatApprovalDate(null)).toBeNull();
+    expect(formatApprovalDate('no-es-fecha')).toBeNull();
   });
 });

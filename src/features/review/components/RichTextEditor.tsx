@@ -84,6 +84,7 @@ export function RichTextEditor({
     editorProps: { attributes: { role: 'textbox', 'aria-multiline': 'true', ...(labelId ? { 'aria-labelledby': labelId } : {}) } },
     onUpdate({ editor: currentEditor }) {
       const html = currentEditor.getHTML();
+      if (html === lastEmittedHtmlRef.current) return;
       const plainText = currentEditor.getText({ blockSeparator: '\n\n' });
       lastEmittedHtmlRef.current = html;
       onChange(html, plainText);
@@ -92,8 +93,8 @@ export function RichTextEditor({
   const editor = testEditor !== undefined ? testEditor : hookEditor;
 
   useEffect(() => {
-    if (editor) {
-      editor.setEditable(!disabled);
+    if (editor && editor.isEditable !== !disabled) {
+      editor.setEditable(!disabled, false);
     }
   }, [editor, disabled]);
 

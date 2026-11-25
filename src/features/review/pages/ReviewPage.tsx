@@ -285,8 +285,6 @@ export function ReviewPageContent({
   }
 
   const message = listMessage(state);
-<<<<<<< Updated upstream
-=======
   const grouped = state.status === 'ready' ? groupResourcesByStatus(state.resources) : null;
   const flaggedPairs = duplicationReport?.flaggedPairs ?? [];
   const withinUnitPairs = flaggedPairs.filter((pair) => !pair.crossUnit);
@@ -296,7 +294,6 @@ export function ReviewPageContent({
     return match ? `«${match.title}»` : `Recurso ${id}`;
   };
 
->>>>>>> Stashed changes
   return (
     <section className="stack">
       <h2 className="h2">Revisión</h2>
@@ -308,11 +305,11 @@ export function ReviewPageContent({
       {notice && (
         <p className={notice.warn ? 'alert alert--warn' : 'alert'} role={notice.warn ? 'alert' : 'status'}>{notice.text}</p>
       )}
-      {duplicationReport && duplicationReport.flaggedPairs.length > 0 && (
+      {withinUnitPairs.length > 0 && (
         <aside className="duplication-warning" role="region" aria-label="Aviso de posible contenido repetido">
           <p className="duplication-warning__title">Aviso: posible contenido repetido</p>
           <ul className="duplication-warning__list">
-            {duplicationReport.flaggedPairs.map((pair, idx) => {
+            {withinUnitPairs.map((pair, idx) => {
               const resA = state.status === 'ready' ? state.resources.find((r) => r.id === pair.resourceIdA) : null;
               const resB = state.status === 'ready' ? state.resources.find((r) => r.id === pair.resourceIdB) : null;
               const titleA = resA ? `«${resA.title}»` : `Recurso ${pair.resourceIdA}`;
@@ -350,18 +347,6 @@ export function ReviewPageContent({
           </ul>
         </aside>
       )}
-<<<<<<< Updated upstream
-      {state.status === 'ready' && state.resources.map((resource) => (
-        <div key={`${resource.id}:${remounts[resource.id] ?? 0}`} id={resource.id}>
-          <ResourceEditor
-            resource={resource}
-            onSave={(draft) => track(saveResource(token, draft))}
-            onReload={() => track(getResource(token, unitId, resource.id))}
-            onRetry={(current) => track(retryVerification(token, current))}
-            onGenerateMedia={(current) => track(regenerateMedia(token, current))}
-            onRegenerate={regenerate}
-          />
-=======
       {crossUnitPairs.length > 0 && (
         <aside
           className="duplication-warning duplication-warning--cross-unit"
@@ -495,7 +480,6 @@ export function ReviewPageContent({
               </section>
             );
           })}
->>>>>>> Stashed changes
         </div>
       )}
     </section>

@@ -16,7 +16,7 @@ Reports: [Login](local-desktop/login.html) and [Registration](local-desktop/regi
 
 ## Production audit
 
-Measured on `https://plataformadocente.dev` on November 19, 2026, between 00:33 and 00:53 Lima time. The table records one Lighthouse report for each page and form factor. The source archive is `production-before.zip`.
+Measured on `https://plataformadocente.dev` on November 19, 2026, between 00:33 and 00:53 Lima time. The table records one Lighthouse report for each page and form factor. Download the [eight Lighthouse reports](production-before-public.zip). This public copy omits embedded screenshots and account details. The measured scores and timings are preserved.
 
 | Page | Mode | Performance | Accessibility | Best practices | SEO | LCP | TBT |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -28,6 +28,8 @@ Measured on `https://plataformadocente.dev` on November 19, 2026, between 00:33 
 | Course unit | Mobile | 99 | 100 | 100 | 91 | 1653 ms | 0 ms |
 | `/downloads` | Desktop | 97 | 98 | 100 | 91 | 1181 ms | 0 ms |
 | `/downloads` | Mobile | 95 | 98 | 100 | 91 | 2762 ms | 0 ms |
+
+The `/courses` captures show session verification in progress. Those scores describe the initial load and do not cover the fully rendered course list.
 
 ## GitHub Actions verification
 

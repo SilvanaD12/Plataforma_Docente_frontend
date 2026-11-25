@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Resource } from '../model/resource';
 import {
+  getDuplicationReport,
   getRegenerationStatus,
   getResource,
   isVersionConflict,
@@ -174,5 +175,17 @@ describe('API de revisión', () => {
     await expect(regenerateResource('token', resource())).rejects.toMatchObject({
       status: 422, code: 'INVALID_OUTCOME', message: 'El resultado de aprendizaje no pertenece a la unidad.',
     });
+  });
+
+  it('consulta el reporte de duplicidad incluyendo otras unidades del curso por defecto (REV-P4)', async () => {
+    const report = { threshold: 0.7, comparedPairs: 2, flaggedPairs: [], duplicatePairRate: 0 };
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async () => Response.json(report));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(getDuplicationReport('token-docente', 'unidad-1')).resolves.toEqual(report);
+    expect(lastCall(fetchMock).url).toBe('/api/v1/units/unidad-1/duplication-report?includeCourse=true');
+
+    await getDuplicationReport('token-docente', 'unidad-1', false);
+    expect(lastCall(fetchMock).url).toBe('/api/v1/units/unidad-1/duplication-report');
   });
 });

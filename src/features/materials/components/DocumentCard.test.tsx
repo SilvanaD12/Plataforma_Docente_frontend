@@ -36,6 +36,7 @@ describe('DocumentCard', () => {
     expect(html).toContain('diapositivas_redes.pdf');
     expect(html).toContain('2.0 MB');
     expect(html).toContain('Diapositivas de clase');
+    expect(html).toContain('15 páginas');
     expect(html).toContain('registrado');
     expect(html).toContain('Procesar');
   });
@@ -73,5 +74,70 @@ describe('DocumentCard', () => {
 
     expect(html).toContain('alert--warn');
     expect(html).toContain('El archivo está dañado o protegido con contraseña.');
+  });
+
+  it('no muestra el conteo de páginas cuando el material es de origen web', () => {
+    const html = renderToStaticMarkup(
+      <DocumentCard
+        document={createMockDocument({
+          status: 'procesado',
+          documentType: 'Página web',
+          pageCount: 23,
+          origin: {
+            source: 'Web',
+            url: 'https://es.wikipedia.org/wiki/Modelo_OSI',
+          },
+        })}
+        onProcess={() => {}}
+        onDelete={() => {}}
+        onDownload={() => {}}
+        onViewChunks={() => {}}
+        isProcessing={false}
+      />,
+    );
+
+    expect(html).not.toContain('23 páginas');
+    expect(html).not.toContain('páginas');
+  });
+
+  it('muestra el aviso no bloqueante de relevancia con opciones Conservar y Eliminar', () => {
+    const html = renderToStaticMarkup(
+      <DocumentCard
+        document={createMockDocument({
+          status: 'procesado',
+          fragmentCount: 4,
+          relevanceWarning: 'Este material parece no tener relación con tu unidad. ¿Deseas conservarlo?',
+        })}
+        onProcess={() => {}}
+        onDelete={() => {}}
+        onDownload={() => {}}
+        onViewChunks={() => {}}
+        isProcessing={false}
+      />,
+    );
+
+    expect(html).toContain('Este material parece no tener relación con tu unidad. ¿Deseas conservarlo?');
+    expect(html).toContain('Conservar');
+    expect(html).toContain('Eliminar');
+  });
+
+  it('muestra el aviso no bloqueante de duplicado entre unidades', () => {
+    const html = renderToStaticMarkup(
+      <DocumentCard
+        document={createMockDocument({
+          status: 'procesado',
+          fragmentCount: 6,
+          duplicateWarning: 'Este material ya está en la unidad «Unidad 1: Fundamentos».',
+        })}
+        onProcess={() => {}}
+        onDelete={() => {}}
+        onDownload={() => {}}
+        onViewChunks={() => {}}
+        isProcessing={false}
+      />,
+    );
+
+    expect(html).toContain('Este material ya está en la unidad «Unidad 1: Fundamentos».');
+    expect(html).toContain('Entendido');
   });
 });

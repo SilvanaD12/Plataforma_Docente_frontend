@@ -27,6 +27,8 @@ export interface DocumentItem {
   embeddingModel?: string | null;
   embeddingError?: string | null;
   origin?: DocumentOrigin | null;
+  relevanceWarning?: string | null;
+  duplicateWarning?: string | null;
 }
 
 export interface ChunkItem {

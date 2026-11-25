@@ -146,7 +146,7 @@ export function MaterialUploadForm({ unit, onUpload, isUploading }: MaterialUplo
             onChange={(e) => setUsePermission(e.target.checked)}
             disabled={isUploading}
           />
-          <span>Autorizo el procesamiento de este material para la generación de recursos 5E.</span>
+          <span>Autorizo el procesamiento de este material para la generación de recursos.</span>
         </label>
 
         <div>

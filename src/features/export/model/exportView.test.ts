@@ -67,7 +67,7 @@ describe('historial de descargas', () => {
   it('cada fila tiene fecha, formato, archivo, curso y unidad (REV-C9)', () => {
     const row = historyRow(download());
     expect(row).toMatchObject({
-      id: 'd1', format: 'SCORM (Chamilo o Canvas)', fileName: 'red-301-unidad-1-scorm.zip', course: 'Redes',
+      id: 'd1', format: 'SCORM (Moodle, Chamilo o Canvas)', fileName: 'red-301-unidad-1-scorm.zip', course: 'Redes',
       unit: 'Unidad 1 · Capa de transporte',
     });
     expect(row.date).not.toBe('');

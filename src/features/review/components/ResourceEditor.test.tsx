@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import type { Resource } from '../model/resource';
-import { PLAN_EVIDENCE_STALE_MESSAGE, startEditing, type EditorState } from '../model/reviewEditor';
+import { PLAN_EVIDENCE_STALE_MESSAGE, editDraft, startEditing, type EditorState } from '../model/reviewEditor';
 import { ResourceEditor } from './ResourceEditor';
 
 function resource(overrides: Partial<Resource> = {}): Resource {
@@ -244,5 +244,34 @@ describe('rechazo de regeneración por evidencia desactualizada (T014)', () => {
     );
     expect(html).toContain('Generación no pudo completar el recurso.');
     expect(html).not.toContain('stale-documents-list');
+  });
+});
+
+describe('recurso ya aprobado (REV-P5)', () => {
+  it('si está aprobado y sin cambios oculta el botón Aprobar y muestra «Aprobado el {fecha}»', () => {
+    const value = resource({
+      status: 'aprobado',
+      options: null,
+      approvalBlockers: [],
+      decidedAt: '2026-11-25T14:30:00+00:00',
+    });
+    const html = render(value);
+    expect(html).toContain('Aprobado el ');
+    expect(html).not.toMatch(/<button[^>]*>Aprobar<\/button>/);
+  });
+
+  it('si un recurso aprobado tiene cambios sin guardar vuelve a mostrar el botón Aprobar', () => {
+    const value = resource({
+      status: 'aprobado',
+      options: null,
+      approvalBlockers: [],
+      decidedAt: '2026-11-25T14:30:00+00:00',
+    });
+    const edited = editDraft(startEditing(value), { title: 'Título modificado' });
+    const html = renderToStaticMarkup(
+      <ResourceEditor resource={value} onSave={noop} onReload={noop} onRetry={noop} initialState={edited} />,
+    );
+    expect(html).not.toContain('Aprobado el ');
+    expect(html).toMatch(/<button[^>]*>Aprobar<\/button>/);
   });
 });

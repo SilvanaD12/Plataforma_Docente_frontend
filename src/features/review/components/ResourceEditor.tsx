@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   RESOURCE_DISCARD_REASONS,
   discardReasonLabel,
+  formatApprovalDate,
   parsePlanWarning,
   reviewStatusLabel,
   type DiscardReason,
@@ -58,6 +59,10 @@ interface ResourceEditorProps {
   onRegenerate?: (resource: Resource) => Promise<void>;
   /** Estado inicial opcional, usado en pruebas para verificar vistas de error o conflicto. */
   initialState?: EditorState;
+  /** Cuando vive dentro de `ResourceCard`, evita duplicar el marco de tarjeta exterior. */
+  embedded?: boolean;
+  /** Notifica al contenedor si el borrador tiene cambios sin guardar. */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 const DECISIONS: { value: DistractorDecision; label: string }[] = [
@@ -78,16 +83,26 @@ export function ResourceEditor({
   onGenerateMedia,
   onRegenerate,
   initialState,
+  embedded = false,
+  onDirtyChange,
 }: ResourceEditorProps) {
   const [state, setState] = useState(() => initialState ?? startEditing(resource));
   const [reason, setReason] = useState<DiscardReason>('sin_sentido');
   const inFlight = useRef(false);
   const { draft, saved } = state;
+  const dirty = isDirty(state);
   const locked = !canEdit(state);
   const schema = structureSchema(draft.type);
   const fieldId = (name: string) => `${saved.id}-${name}`;
   const media = mediaView(state);
   const planWarning = parsePlanWarning(saved.planWarning);
+  const approvalDate = formatApprovalDate(saved.decidedAt);
+
+  const onDirtyChangeRef = useRef(onDirtyChange);
+  onDirtyChangeRef.current = onDirtyChange;
+  useEffect(() => {
+    onDirtyChangeRef.current?.(dirty);
+  }, [dirty]);
 
   async function run(action: () => Promise<Resource>, onSuccess = afterSaveSuccess) {
     if (inFlight.current) return;
@@ -117,8 +132,11 @@ export function ResourceEditor({
     }
   }
 
+  const Container = embedded ? 'div' : 'article';
+  const containerClass = embedded ? 'stack' : 'card stack';
+
   return (
-    <article className="card stack">
+    <Container className={containerClass}>
       <p className="overline">{reviewStatusLabel(saved.status)}</p>
       {saved.status === 'descartado' && discardReasonLabel(saved.discardReason) && (
         <p className="muted">Motivo: {discardReasonLabel(saved.discardReason)}</p>
@@ -219,8 +237,8 @@ export function ResourceEditor({
         </fieldset>
       ))}
 
-      {isDirty(state) && approvalHint(state) && <p className="muted">{approvalHint(state)}</p>}
-      {!isDirty(state) && saved.approvalBlockers.length > 0 && (
+      {dirty && approvalHint(state) && <p className="muted">{approvalHint(state)}</p>}
+      {!dirty && saved.approvalBlockers.length > 0 && (
         <ul className="muted">
           {saved.approvalBlockers.map((blocker) => <li key={blocker}>{blocker}</li>)}
         </ul>
@@ -252,14 +270,20 @@ export function ResourceEditor({
           </button>
         ) : (
           <>
-            <button type="button" className="btn" disabled={!canSave(state) || !isDirty(state)}
+            <button type="button" className="btn" disabled={!canSave(state) || !dirty}
               onClick={() => run(() => onSave(draft))}>
               Guardar cambios
             </button>
-            <button type="button" className="btn btn--primary" disabled={!canApprove(state)}
-              onClick={() => run(() => onSave(withStatus(draft, 'aprobado')), afterApprovalSuccess)}>
-              Aprobar
-            </button>
+            {saved.status === 'aprobado' && !dirty ? (
+              <p className="review-approved-stamp" role="status">
+                {approvalDate ? `Aprobado el ${approvalDate}` : 'Aprobado'}
+              </p>
+            ) : (
+              <button type="button" className="btn btn--primary" disabled={!canApprove(state)}
+                onClick={() => run(() => onSave(withStatus(draft, 'aprobado')), afterApprovalSuccess)}>
+                Aprobar
+              </button>
+            )}
             {saved.status === 'descartado' ? (
               <button type="button" className="btn" disabled={!canRestore(state)}
                 onClick={() => run(() => onSave(withStatus(draft, 'pendiente')))}>
@@ -296,6 +320,6 @@ export function ResourceEditor({
           </>
         )}
       </div>
-    </article>
+    </Container>
   );
 }

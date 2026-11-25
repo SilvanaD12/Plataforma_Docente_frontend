@@ -57,4 +57,16 @@ describe('insignia de verificación', () => {
     const html = [verification(), verification({ status: 'pending', retryAvailable: true }), null].map(render).join('');
     expect(html).not.toMatch(/5E|Gemini|Wikipedia/);
   });
+
+  it('en modo compacto muestra solo la etiqueta en un span sin botones anidados', () => {
+    const html = renderToStaticMarkup(
+      <VerificationBadge
+        verification={verification({ status: 'pending', reason: 'No se pudo completar.', retryAvailable: true })}
+        compact
+      />,
+    );
+    expect(html).toContain('Respaldo: Pendiente');
+    expect(html).toContain('verification-pill--warning');
+    expect(html).not.toContain('<button');
+  });
 });

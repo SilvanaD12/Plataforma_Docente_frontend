@@ -212,3 +212,61 @@ export function verificationAction(verification: VerificationResult | null | und
   if (verification.status === 'insufficient') return 'edit-or-regenerate';
   return verification.retryAvailable ? 'retry' : 'regenerate';
 }
+
+export const STAGE_ORDER: Record<string, number> = {
+  engage: 0,
+  explore: 1,
+  explain: 2,
+  elaborate: 3,
+  evaluate: 4,
+};
+
+const STAGE_LABELS: Record<string, string> = {
+  engage: 'Enganchar',
+  explore: 'Explorar',
+  explain: 'Explicar',
+  elaborate: 'Elaborar',
+  evaluate: 'Evaluar',
+};
+
+export function stageLabel(stage: string): string {
+  return STAGE_LABELS[stage] ?? stage;
+}
+
+const RESOURCE_TYPE_LABELS: Record<string, string> = {
+  pregunta_detonante: 'Pregunta detonante',
+  sondeo_diagnostico: 'Sondeo de ideas previas',
+  audio_detonante: 'Cápsula de audio',
+  reto_prediccion: 'Reto de predicción',
+  guia_exploracion: 'Guía de exploración',
+  caso_indagacion: 'Caso con preguntas',
+  imagen_ilustrativa: 'Imagen ilustrativa',
+  diagrama_proceso: 'Diagrama de proceso',
+  exploracion_guiada: 'Exploración guiada',
+  actividad_kinestesica: 'Actividad kinestésica',
+  explicacion: 'Explicación del tema',
+  glosario: 'Glosario',
+  mapa_conceptual: 'Mapa conceptual',
+  infografia: 'Infografía',
+  podcast_resumen: 'Resumen en pódcast',
+  ejercicio_aplicacion: 'Ejercicio de aplicación',
+  caso_aplicado: 'Caso aplicado',
+  emparejamiento: 'Actividad de relacionar',
+  ordenar_pasos: 'Actividad de ordenar',
+  item_opcion_multiple: 'Pregunta de opción múltiple',
+  verdadero_falso: 'Verdadero o falso',
+  completar_espacios: 'Completar espacios',
+};
+
+export function resourceTypeLabel(type: string): string {
+  return RESOURCE_TYPE_LABELS[type] ?? type;
+}
+
+const approvalDateFormat = new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeStyle: 'short' });
+
+export function formatApprovalDate(decidedAt: string | null | undefined): string | null {
+  if (!decidedAt) return null;
+  const date = new Date(decidedAt);
+  if (Number.isNaN(date.getTime())) return null;
+  return approvalDateFormat.format(date);
+}

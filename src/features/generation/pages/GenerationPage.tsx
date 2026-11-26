@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { activityTypeLabels, type UnitContext } from '../../../shared/types/courses';
 import { FallbackNotices } from '../components/FallbackNotices';
@@ -12,10 +12,8 @@ import { useProcessedMaterial } from '../hooks/useProcessedMaterial';
 import { useResourceTypes } from '../hooks/useResourceTypes';
 import { useStartGeneration } from '../hooks/useStartGeneration';
 import type { GenerationError } from '../model/generationErrors';
-import {
-  planRequestFromGenerationBody, planRequestFromInputs, type CreateGenerationPlan,
-} from '../model/generationPlan';
-import { isTerminal, type GenerationRequestStatus, type StartGenerationRequest } from '../model/generationRequest';
+import { planRequestFromInputs, type CreateGenerationPlan } from '../model/generationPlan';
+import { isTerminal, type GenerationRequestStatus } from '../model/generationRequest';
 import '../generation.css';
 
 export function GenerationPage() {
@@ -42,8 +40,6 @@ function GenerationView({ course, unit, token, onSessionExpired }: UnitContext) 
     closePlan();
   }, [track, closePlan]);
   const starting = useStartGeneration({ unitId: unit.id, token, onSessionExpired, onStarted });
-  // Último cuerpo sin plan que se envió, para ofrecer «Planificar con estos datos» ante `PLAN_REQUIRED`.
-  const lastBodyWithoutPlan = useRef<StartGenerationRequest | null>(null);
   const { request } = tracking;
   const running = !!request && !isTerminal(request.status);
   const ready = !running && !tracking.recovering && !plans.recovering;
@@ -63,10 +59,6 @@ function GenerationView({ course, unit, token, onSessionExpired }: UnitContext) 
     if (plans.plan) createPlan(planRequestFromInputs(plans.plan.unitId, plans.plan.inputs));
   }
 
-  function planFromRejectedRequest() {
-    if (lastBodyWithoutPlan.current) createPlan(planRequestFromGenerationBody(lastBodyWithoutPlan.current));
-  }
-
   function reloadPlan() {
     starting.clearError();
     void plans.reload();
@@ -77,15 +69,16 @@ function GenerationView({ course, unit, token, onSessionExpired }: UnitContext) 
     plans.close();
   }
 
+  // Único camino normal que envía un pedido de generación: siempre con el plan aprobado y su versión.
   function generateWithPlan() {
-    if (plan) void starting.start({ planId: plan.id, planVersion: plan.version });
+    if (plan?.status === 'approved') void starting.start({ planId: plan.id, planVersion: plan.version });
   }
 
   return (
     <div className="stack stack--loose">
       <p className="muted">
-        Genera recursos para «{unit.title}» de {course.name} a partir del material procesado de la unidad.
-        Lo generado pasa a Revisión.
+        Planifica los recursos de «{unit.title}» de {course.name} a partir del material procesado de la unidad.
+        Revisa y aprueba el plan, y después genera desde él. Lo generado pasa a Revisión.
       </p>
 
       {tracking.recovering && !request && <p className="muted" role="status">Buscando pedidos en curso…</p>}
@@ -104,11 +97,7 @@ function GenerationView({ course, unit, token, onSessionExpired }: UnitContext) 
         // Se oculta, sin desmontarse, mientras se revisa el plan: al volver, el formulario conserva sus valores.
         <div className="generation-form-area" hidden={plan !== null}>
           <GenerationForm unit={unit} defaultAudience={audience} catalog={catalog} token={token} onSessionExpired={onSessionExpired}
-            submitting={starting.submitting} planning={plans.busy === 'creating'} onPlan={createPlan}
-            onSubmit={(body) => {
-              lastBodyWithoutPlan.current = body;
-              void starting.start(body);
-            }} />
+            planning={plans.busy === 'creating'} onPlan={createPlan} />
           {plans.error && !plan && (
             <div className="alert alert--warn" role="alert">
               <div className="stack generation-notice">
@@ -131,16 +120,21 @@ function GenerationView({ course, unit, token, onSessionExpired }: UnitContext) 
         <StartErrorNotice error={starting.error} submitting={starting.submitting || plans.busy !== null}
           onRetry={starting.retry} onStartFresh={starting.startFresh}
           onReloadPlan={plan ? reloadPlan : undefined} onReplan={plans.plan ? replan : undefined}
-          onPlan={lastBodyWithoutPlan.current ? planFromRejectedRequest : undefined}
           onClosePlan={plan ? closePlanView : undefined} />
       )}
 
       {tracking.error && (
-        <p className="alert alert--warn" role="alert">
-          {tracking.error.kind === 'network'
-            ? 'Se perdió la conexión al consultar el pedido. Seguimos intentándolo.'
-            : tracking.error.message}
-        </p>
+        <div className="alert alert--warn" role="alert">
+          <div className="stack generation-notice">
+            <p>
+              {tracking.error.kind === 'network'
+                ? 'Se perdió la conexión al consultar el pedido. Seguimos intentándolo.'
+                : tracking.error.message}
+            </p>
+            {/* Red de seguridad: un pedido sin plan guardado antes de exigir el plan responde PLAN_REQUIRED al recuperarlo. */}
+            <PlanErrorDetails error={tracking.error} />
+          </div>
+        </div>
       )}
 
       {request && (

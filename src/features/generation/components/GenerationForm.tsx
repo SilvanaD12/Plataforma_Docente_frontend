@@ -25,11 +25,12 @@ interface GenerationFormProps {
   catalog: ResourceTypesState;
   token?: string;
   onSessionExpired?: (token: string) => void;
-  submitting?: boolean;
   error?: string;
-  onSubmit: (body: StartGenerationRequest) => void;
-  /** «Planificar»: crea el plan con los mismos datos que se generarían (GEN-P3). Sin esta prop no se muestra. */
-  onPlan?: (body: CreateGenerationPlan) => void;
+  /**
+   * «Planificar», la acción principal (GEN-P3): recibe el cuerpo del plan ya confirmado en la vista previa. El formulario
+   * no envía pedidos de generación: se genera solo desde un plan aprobado.
+   */
+  onPlan: (body: CreateGenerationPlan) => void;
   /** Se está armando el plan. */
   planning?: boolean;
   initialValue?: GenerationFormValue;
@@ -43,7 +44,7 @@ const modes: { value: GenerationMode; label: string; hint: string }[] = [
 const quantities = Array.from({ length: maxQuantity - minQuantity + 1 }, (_, index) => minQuantity + index);
 
 export function GenerationForm({
-  unit, catalog, token, onSessionExpired, submitting = false, error, onSubmit, onPlan, planning = false,
+  unit, catalog, token, onSessionExpired, error, onPlan, planning = false,
   initialValue, defaultAudience = '',
 }: GenerationFormProps) {
   const [form, setForm] = useState(() => initialValue ?? { ...initialGenerationForm, audience: defaultAudience });
@@ -52,11 +53,12 @@ export function GenerationForm({
   const [interpreting, setInterpreting] = useState(false);
   const [interpretation, setInterpretation] = useState<GenerationInterpretation | null>(null);
   const [chatError, setChatError] = useState('');
-  // Cuerpo armado al pulsar «Generar». Mientras existe, se muestra la vista previa y el formulario no se edita.
+  // Cuerpo armado al pulsar «Planificar». Mientras existe, se muestra la vista previa y el formulario no se edita.
+  // Solo sirve para la vista previa y para pedir el plan: nunca se envía como pedido de generación.
   const [pending, setPending] = useState<StartGenerationRequest | null>(null);
   const submitButton = useRef<HTMLButtonElement>(null);
   const returnFocus = useRef(false);
-  const locked = submitting || planning || interpreting || pending !== null;
+  const locked = planning || interpreting || pending !== null;
   const sequence = form.mode === 'sequence';
   const supportsModalities = hasModalityCatalog(catalog.types);
   const visibleTypes = supportsModalities
@@ -83,16 +85,11 @@ export function GenerationForm({
     if (!found) setPending(body);
   }
 
-  function plan() {
-    if (cannotSubmit || !onPlan) return;
-    const { body, problem: found } = generationSubmission(form, unit.id, catalog.types);
-    setProblem(found ?? '');
-    if (!found) onPlan(planRequestFromGenerationBody(body));
-  }
-
   function confirm() {
-    // Se envía exactamente el cuerpo de la vista previa; la clave de idempotencia la decide useStartGeneration.
-    if (pending && !submitting) onSubmit(pending);
+    // El plan pide exactamente los tipos y el orden de la vista previa. Si falla, el formulario queda como estaba.
+    if (!pending || planning) return;
+    onPlan(planRequestFromGenerationBody(pending));
+    setPending(null);
   }
 
   function edit() {
@@ -316,32 +313,24 @@ export function GenerationForm({
         <div>
           {needsType && (
             <p className="field__hint" id="generation-modality-hint" role="status">
-              {visibleTypes.length ? 'Elige un tipo de recurso compatible con esta modalidad para generar.' : 'Esta modalidad todavía no tiene tipos disponibles.'}
+              {visibleTypes.length ? 'Elige un tipo de recurso compatible con esta modalidad para planificar.' : 'Esta modalidad todavía no tiene tipos disponibles.'}
             </p>
           )}
-          {onPlan && (
-            <p className="field__hint" id="generation-plan-hint">
-              «Planificar» arma un plan con el propósito, los conceptos y los fragmentos de cada recurso, para revisarlo y
-              aprobarlo antes de generar.
-            </p>
-          )}
+          <p className="field__hint" id="generation-plan-hint">
+            «Planificar» arma un plan con el propósito, los conceptos y los fragmentos de cada recurso. Después lo
+            revisas, lo apruebas y generas desde el plan.
+          </p>
           <div className="course-actions">
-            {onPlan && (
-              <button className="btn" type="button" aria-busy={planning} aria-describedby="generation-plan-hint"
-                disabled={cannotSubmit} onClick={plan}>
-                {planning ? 'Armando el plan…' : 'Planificar'}
-              </button>
-            )}
-            <button ref={submitButton} className="btn btn--primary" type="submit" aria-busy={submitting && !pending}
-              aria-describedby={needsType ? 'generation-modality-hint' : undefined} disabled={cannotSubmit}>
-              {submitting && !pending ? 'Enviando…' : sequence ? 'Generar secuencia' : 'Generar recurso'}
+            <button ref={submitButton} className="btn btn--primary" type="submit" aria-busy={planning}
+              aria-describedby={needsType ? 'generation-modality-hint generation-plan-hint' : 'generation-plan-hint'}
+              disabled={cannotSubmit}>
+              {planning ? 'Armando el plan…' : 'Planificar'}
             </button>
           </div>
         </div>
       </form>
       {pending && (
-        <GenerationPreview preview={previewFromRequest(pending, unit, catalog.types)} submitting={submitting}
-          onConfirm={confirm} onEdit={edit} />
+        <GenerationPreview preview={previewFromRequest(pending, unit, catalog.types)} onConfirm={confirm} onEdit={edit} />
       )}
     </>
   );

@@ -11,7 +11,10 @@ interface GenerationPreviewProps {
 
 const resourceCount = (count: number) => (count === 1 ? '1 recurso' : `${count} recursos`);
 
-/** Resumen del pedido antes de confirmarlo (HU-040). No depende del formulario: recibe la vista previa ya armada. */
+/**
+ * Resumen de lo que se va a planificar, antes de confirmarlo (HU-040). No depende del formulario: recibe la vista previa
+ * ya armada. Al confirmar se arma el plan; la generación empieza después, desde el plan aprobado.
+ */
 export function GenerationPreview({ preview, submitting = false, onConfirm, onEdit }: GenerationPreviewProps) {
   const heading = useRef<HTMLHeadingElement>(null);
 
@@ -28,9 +31,10 @@ export function GenerationPreview({ preview, submitting = false, onConfirm, onEd
 
   return (
     <section className="card" aria-labelledby="generation-preview-title" aria-describedby="generation-preview-hint">
-      <h2 className="h2" id="generation-preview-title" ref={heading} tabIndex={-1}>Revisa el pedido antes de generar</h2>
+      <h2 className="h2" id="generation-preview-title" ref={heading} tabIndex={-1}>Revisa lo que vas a planificar</h2>
       <p className="muted" id="generation-preview-hint">
-        Los pasos se generan en el orden que se muestra abajo. Para cambiar algo, vuelve a editar el formulario.
+        Al confirmar se arma un plan con estos recursos, en el orden que se muestra abajo. Después revisas el plan, lo
+        apruebas y generas desde él. Para cambiar algo, vuelve a editar el formulario.
       </p>
 
       <dl className="generation-preview__facts">
@@ -70,7 +74,7 @@ export function GenerationPreview({ preview, submitting = false, onConfirm, onEd
 
       <div className="course-actions">
         <button className="btn btn--primary" type="button" aria-busy={submitting} disabled={submitting} onClick={onConfirm}>
-          {submitting ? 'Enviando…' : 'Confirmar y generar'}
+          {submitting ? 'Armando el plan…' : 'Confirmar y planificar'}
         </button>
         <button className="btn" type="button" disabled={submitting} onClick={onEdit}>Volver a editar</button>
       </div>

@@ -8,7 +8,7 @@ const MATERIAL = [
   'IP identifica el destino de los paquetes y permite encaminarlos entre redes.',
 ].join('\n\n');
 
-test('T072: interpreta, edita y confirma un solo pedido en la unidad activa', async ({ page, baseURL }) => {
+test('T072: interpreta, edita, planifica y genera un solo pedido en la unidad activa', async ({ page, baseURL }) => {
   const apiBase = (process.env.VITE_API_URL || baseURL || '').replace(/\/$/, '');
   const requestsUrl = `${apiBase}/api/v1/generation-requests`;
 
@@ -79,8 +79,9 @@ test('T072: interpreta, edita y confirma un solo pedido en la unidad activa', as
   await expect(quantity).toHaveValue('2');
   await quantity.selectOption('1');
 
-  await page.getByRole('button', { name: 'Generar recurso' }).click();
-  await expect(page.getByRole('heading', { name: 'Revisa el pedido antes de generar' })).toBeVisible();
+  // GEN-P3: se planifica, se aprueba el plan y se genera desde él.
+  await page.getByRole('button', { name: 'Planificar', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Revisa lo que vas a planificar' })).toBeVisible();
   await expect(page.getByText('Total: 1 recurso', { exact: true })).toBeVisible();
 
   async function listRequests(unitId: string) {
@@ -92,20 +93,38 @@ test('T072: interpreta, edita y confirma un solo pedido en la unidad activa', as
     return response.json();
   }
 
+  const planning = page.waitForResponse((response) =>
+    new URL(response.url()).pathname === '/api/v1/generation-plans'
+      && response.request().method() === 'POST',
+  );
+  await page.getByRole('button', { name: 'Confirmar y planificar' }).click();
+  const planned = await planning;
+  expect(planned.status()).toBe(201);
+  const plan = await planned.json();
+  expect(plan).toMatchObject({ unitId: tcp.id, status: 'draft', inputs: { resourceTypes: [{ type: 'glosario', quantity: 1 }] } });
+
+  await expect(page.getByRole('heading', { name: 'Plan de generación' })).toBeVisible();
+  const generate = page.getByRole('button', { name: 'Generar', exact: true });
+  await expect(generate).toBeDisabled();
+  await page.getByRole('button', { name: 'Aprobar plan' }).click();
+  await expect(generate).toBeEnabled();
+
   expect(await listRequests(tcp.id)).toHaveLength(0);
 
   const creating = page.waitForResponse((response) =>
     new URL(response.url()).pathname === '/api/v1/generation-requests'
       && response.request().method() === 'POST',
   );
-  await page.getByRole('button', { name: 'Confirmar y generar' }).click();
+  await generate.click();
 
   const created = await creating;
+  expect(created.request().postDataJSON()).toEqual({ planId: plan.id, planVersion: plan.version });
   expect(created.status()).toBe(202);
   const order = await created.json();
   expect(order).toMatchObject({
     unitId: tcp.id,
-    parameters: { resourceTypes: ['glosario'], quantity: 1 },
+    planId: plan.id,
+    parameters: { resourceTypes: ['glosario'] },
   });
 
   const requests = await listRequests(tcp.id);

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom';
-import { errorMessage } from '../../../shared/api/httpClient';
+import { ApiError, errorMessage } from '../../../shared/api/httpClient';
 import { courseFormProblem, courseRequest, maxCourseUnits } from '../model/courseForm';
 import { activityTypeLabels, type ActivityType, type Course } from '../../../shared/types/courses';
 import type { CoursesContext } from './CoursesLayout';
@@ -34,6 +34,20 @@ function CourseFormView({ course, saveCourse }: { course?: Course; saveCourse: C
   const mounted = useRef(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [fieldError, setFieldError] = useState<{ name: string; message: string } | null>(null);
+
+  function fieldAttributes(name: string, hintId?: string) {
+    const invalid = fieldError?.name === name;
+    return {
+      'aria-invalid': invalid || undefined,
+      'aria-describedby': [hintId, invalid ? `${name}-error` : undefined].filter(Boolean).join(' ') || undefined,
+    };
+  }
+
+  function fieldMessage(name: string) {
+    if (fieldError?.name !== name) return null;
+    return <span className="alert alert--warn" id={`${name}-error`} role="alert">{fieldError.message}</span>;
+  }
 
   useEffect(() => {
     mounted.current = true;
@@ -43,6 +57,7 @@ function CourseFormView({ course, saveCourse }: { course?: Course; saveCourse: C
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (inFlight.current) return;
+    setFieldError(null);
 
     const form = new FormData(event.currentTarget);
     const value = (name: string) => String(form.get(name) ?? '');
@@ -82,7 +97,30 @@ function CourseFormView({ course, saveCourse }: { course?: Course; saveCourse: C
       const saved = await saveCourse(request, course?.id);
       if (mounted.current) navigate('/courses/' + encodeURIComponent(saved.id), { replace: true });
     } catch (cause) {
-      if (mounted.current) setError(errorMessage(cause));
+      if (!mounted.current) return;
+      const message = errorMessage(cause);
+
+      if (cause instanceof ApiError && cause.status === 409 && Array.isArray(cause.details)) {
+        const detail = cause.details[0];
+        const key = Number.isInteger(detail?.unitIndex) ? unitKeys[detail.unitIndex] : undefined;
+
+        if (key !== undefined && cause.code === 'DUPLICATE_UNIT_TITLE' && detail.field === 'title') {
+          setFieldError({ name: `title-${key}`, message });
+          return;
+        }
+
+        if (key !== undefined && cause.code === 'DUPLICATE_OUTCOME' && detail.field === 'code'
+            && Number.isInteger(detail.outcomeIndex) && detail.outcomeIndex >= 0) {
+          const savedCount = savedUnits[key - 1]?.outcomes.length ?? 0;
+          const name = detail.outcomeIndex < savedCount
+            ? `outcome-code-${key}-${detail.outcomeIndex}`
+            : `outcomes-${key}`;
+          setFieldError({ name, message });
+          return;
+        }
+      }
+
+      setError(message);
     } finally {
       inFlight.current = false;
       if (mounted.current) setSaving(false);
@@ -96,7 +134,7 @@ function CourseFormView({ course, saveCourse }: { course?: Course; saveCourse: C
         <h1>{course ? 'Editar curso' : 'Nuevo curso'}</h1>
         <p className="muted">{course ? 'Actualiza los datos del curso y sus unidades.' : 'Registra los datos del curso y al menos una unidad.'}</p>
       </header>
-      <form className="stack stack--loose" onSubmit={submit}>
+      <form className="stack stack--loose" onSubmit={submit} onChange={() => setFieldError(null)}>
         <section className="card" aria-labelledby="course-data">
           <h2 className="h2" id="course-data">Datos del curso</h2>
           <div className="course-form-grid">
@@ -132,12 +170,13 @@ function CourseFormView({ course, saveCourse }: { course?: Course; saveCourse: C
             return (
               <fieldset className="unit-fieldset" key={key} disabled={saving}>
                 <legend className="unit-fieldset__legend">Unidad {number}</legend>
-                <label className="field"><span className="field__label">Título de la unidad</span><input className="input" name={`title-${key}`} defaultValue={unit?.title} maxLength={150} required /></label>
+                <label className="field"><span className="field__label">Título de la unidad</span><input className="input" name={`title-${key}`} defaultValue={unit?.title} maxLength={150} required {...fieldAttributes(`title-${key}`)} />{fieldMessage(`title-${key}`)}</label>
                 {unit?.outcomes.map((outcome, outcomeIndex) => (
                   <div className="course-outcome" key={outcome.id}>
                     <label className="field">
                       <span className="field__label">Código del resultado {outcomeIndex + 1}</span>
-                      <input className="input" name={`outcome-code-${key}-${outcomeIndex}`} defaultValue={outcome.code ?? ''} maxLength={20} />
+                      <input className="input" name={`outcome-code-${key}-${outcomeIndex}`} defaultValue={outcome.code ?? ''} maxLength={20} {...fieldAttributes(`outcome-code-${key}-${outcomeIndex}`)} />
+                      {fieldMessage(`outcome-code-${key}-${outcomeIndex}`)}
                     </label>
                     <label className="field">
                       <span className="field__label">Resultado de aprendizaje {outcomeIndex + 1}</span>
@@ -147,7 +186,8 @@ function CourseFormView({ course, saveCourse }: { course?: Course; saveCourse: C
                 ))}
                 <label className="field">
                   <span className="field__label">{unit?.outcomes.length ? 'Añadir resultados de aprendizaje (opcional)' : 'Resultados de aprendizaje (opcional)'}</span>
-                  <textarea className="input course-textarea" name={`outcomes-${key}`} rows={3} aria-describedby={`outcomes-hint-${key}`} />
+                  <textarea className="input course-textarea" name={`outcomes-${key}`} rows={3} {...fieldAttributes(`outcomes-${key}`, `outcomes-hint-${key}`)} />
+                  {fieldMessage(`outcomes-${key}`)}
                   <span className="field__hint" id={`outcomes-hint-${key}`}>Uno por línea. Puedes indicar un código, como «RA1.1: Compara protocolos».</span>
                 </label>
                 {!unit && unitKeys.length > 1 && (

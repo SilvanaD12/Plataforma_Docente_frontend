@@ -47,24 +47,25 @@ const catalog = { types, loading: false, error: '', reload: () => undefined };
 
 describe('Formulario de generación', () => {
   it('ofrece los tipos del catálogo por etapa, con casillas en modo secuencia', () => {
-    const html = render(<GenerationForm unit={unit} catalog={catalog} onSubmit={() => undefined} />);
+    const html = render(<GenerationForm unit={unit} catalog={catalog} onPlan={() => undefined} />);
     expect(html).toContain('Secuencia de recursos');
     expect(html).toContain('Enganchar');
     expect(html).toContain('Ítem de opción múltiple');
     expect(html.match(/type="checkbox"/g)).toHaveLength(2);
     expect(html).toContain('RA1.1: Compara TCP y UDP.');
-    expect(html).toContain('Generar secuencia');
+    expect(html).toMatch(/<button[^>]*class="btn btn--primary" type="submit"[^>]*>Planificar<\/button>/);
     expect(html).toMatch(/Audiencia \(opcional\)<\/span><input[^>]+name="audience"[^>]+maxLength="200"/);
     expect(html).toMatch(/Competencia \(opcional\)<\/span><input[^>]+name="competency"[^>]+maxLength="200"/);
   });
 
   it('usa un solo tipo en modo individual y bloquea el resto al llegar a 8 en secuencia', () => {
-    const individual = render(<GenerationForm unit={unit} catalog={catalog} onSubmit={() => undefined}
+    const individual = render(<GenerationForm unit={unit} catalog={catalog} onPlan={() => undefined}
       initialValue={{ ...initialGenerationForm, mode: 'individual' }} />);
     expect(individual).not.toContain('type="checkbox"');
-    expect(individual).toContain('Generar recurso');
+    expect(individual).toContain('>Planificar</button>');
+    expect(individual).not.toContain('Generar recurso');
 
-    const full = render(<GenerationForm unit={unit} catalog={catalog} onSubmit={() => undefined}
+    const full = render(<GenerationForm unit={unit} catalog={catalog} onPlan={() => undefined}
       initialValue={{ ...initialGenerationForm, resourceTypes: ['pregunta_detonante', 'a', 'b', 'c', 'd', 'e', 'f', 'g'] }} />);
     expect(full).toContain('Elegidos: 8 de 8');
     expect(full).toMatch(/<input type="checkbox" name="resourceTypes" disabled="" value="item_opcion_multiple"\/>/);
@@ -76,7 +77,7 @@ describe('Formulario de generación', () => {
       { ...types[0], modalities: ['Textual'] },
       { ...types[1], modalities: ['Gamificado'] },
     ] satisfies ResourceTypeInfo[] };
-    const html = render(<GenerationForm unit={unit} catalog={filteredCatalog} onSubmit={() => undefined}
+    const html = render(<GenerationForm unit={unit} catalog={filteredCatalog} onPlan={() => undefined}
       initialValue={{ ...initialGenerationForm, modality: 'Gamificado' }} />);
     expect(html).toContain('name="modality"');
     expect(html).toContain('Contexto</legend>');
@@ -93,7 +94,7 @@ describe('Formulario de generación', () => {
     ] satisfies ResourceTypeInfo[] };
     const textual = { ...initialGenerationForm, resourceTypes: types.map((type) => type.id) };
     const gamified = changeModality(textual, 'Gamificado', modalityCatalog.types);
-    const html = render(<GenerationForm unit={unit} catalog={modalityCatalog} onSubmit={() => undefined}
+    const html = render(<GenerationForm unit={unit} catalog={modalityCatalog} onPlan={() => undefined}
       initialValue={gamified} />);
     expect(html).toContain('Elegidos: 1 de 8');
     expect(html).toMatch(/name="resourceTypes" checked="" value="item_opcion_multiple"/);
@@ -101,14 +102,14 @@ describe('Formulario de generación', () => {
     expect(html).not.toMatch(/type="submit"[^>]*disabled=""/);
 
     const kinesthetic = changeModality(gamified, 'Kinestésico', modalityCatalog.types);
-    const empty = render(<GenerationForm unit={unit} catalog={modalityCatalog} onSubmit={() => undefined}
+    const empty = render(<GenerationForm unit={unit} catalog={modalityCatalog} onPlan={() => undefined}
       initialValue={kinesthetic} />);
     expect(empty).toContain('Esta modalidad todavía no tiene tipos disponibles.');
     expect(empty).toMatch(/type="submit"[^>]*disabled=""/);
   });
 
   it('avisa si el catálogo no cargó y no permite enviar', () => {
-    const html = render(<GenerationForm unit={unit} catalog={{ ...catalog, types: [], error: 'Sin conexión.' }} onSubmit={() => undefined} />);
+    const html = render(<GenerationForm unit={unit} catalog={{ ...catalog, types: [], error: 'Sin conexión.' }} onPlan={() => undefined} />);
     expect(html).toContain('Sin conexión.');
     expect(html).toContain('Reintentar');
     expect(html).toMatch(/type="submit"[^>]*disabled=""/);
@@ -254,22 +255,22 @@ describe('Vista previa del pedido (HU-040)', () => {
 
   it('tiene un encabezado enfocable y los dos botones reales', () => {
     const markup = html();
-    expect(markup).toMatch(/<h2 class="h2" id="generation-preview-title" tabindex="-1">Revisa el pedido antes de generar<\/h2>/);
+    expect(markup).toMatch(/<h2 class="h2" id="generation-preview-title" tabindex="-1">Revisa lo que vas a planificar<\/h2>/);
     expect(markup).toContain('aria-labelledby="generation-preview-title"');
-    expect(markup).toMatch(/<button class="btn btn--primary" type="button" aria-busy="false">Confirmar y generar<\/button>/);
+    expect(markup).toMatch(/<button class="btn btn--primary" type="button" aria-busy="false">Confirmar y planificar<\/button>/);
     expect(markup).toMatch(/<button class="btn" type="button">Volver a editar<\/button>/);
   });
 
-  it('bloquea ambos botones mientras se envía', () => {
+  it('bloquea ambos botones mientras se arma el plan', () => {
     const markup = html(true);
-    expect(markup).toMatch(/<button class="btn btn--primary" type="button" aria-busy="true" disabled="">Enviando…<\/button>/);
+    expect(markup).toMatch(/<button class="btn btn--primary" type="button" aria-busy="true" disabled="">Armando el plan…<\/button>/);
     expect(markup).toMatch(/<button class="btn" type="button" disabled="">Volver a editar<\/button>/);
   });
 
-  it('el formulario sigue mostrando «Generar» y no abre la vista previa al renderizarse', () => {
-    const markup = render(<GenerationForm unit={unit} catalog={catalog} onSubmit={() => undefined}
+  it('el formulario muestra «Planificar» y no abre la vista previa al renderizarse', () => {
+    const markup = render(<GenerationForm unit={unit} catalog={catalog} onPlan={() => undefined}
       initialValue={{ ...initialGenerationForm, resourceTypes: ['pregunta_detonante'] }} />);
-    expect(markup).toContain('Generar secuencia');
-    expect(markup).not.toContain('Confirmar y generar');
+    expect(markup).toContain('>Planificar</button>');
+    expect(markup).not.toContain('Confirmar y planificar');
   });
 });

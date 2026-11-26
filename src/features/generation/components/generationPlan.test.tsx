@@ -10,6 +10,7 @@ import { StartErrorNotice } from '../pages/GenerationPage';
 import { generationPlan, planTypes } from '../testing/planFixtures';
 import { FallbackNotices } from './FallbackNotices';
 import { GenerationForm } from './GenerationForm';
+import { initialGenerationForm } from '../model/generationForm';
 import { GenerationPlanView } from './GenerationPlanView';
 import { GenerationPreview } from './GenerationPreview';
 import { GenerationProgress } from './GenerationProgress';
@@ -256,19 +257,35 @@ describe('Recargar la pantalla (PLAN-C14)', () => {
   });
 });
 
-describe('«Planificar» en el formulario (T016)', () => {
+describe('«Planificar» como acción principal del formulario', () => {
   const catalog = { types: planTypes, loading: false, error: '', reload: noop };
 
-  it('aparece junto a «Generar» cuando la página permite planificar', () => {
-    const html = render(<GenerationForm unit={unit} catalog={catalog} onSubmit={noop} onPlan={noop}
-      initialValue={undefined} />);
-    expect(html).toContain('>Planificar</button>');
-    expect(html).toContain('Generar secuencia');
+  it('el botón principal es «Planificar» y el formulario no ofrece «Generar»', () => {
+    const html = render(<GenerationForm unit={unit} catalog={catalog} onPlan={noop}
+      initialValue={{ ...initialGenerationForm, resourceTypes: ['explicacion'] }} />);
+    const buttons = [...html.matchAll(/<button[^>]*>([^<]*)<\/button>/g)].map(([, label]) => label);
+
+    expect(html).toMatch(/<button[^>]*class="btn btn--primary" type="submit"[^>]*>Planificar<\/button>/);
+    expect(buttons.filter((label) => /Generar/.test(label))).toEqual([]);
+    expect(text(html)).toContain('Después lo revisas, lo apruebas y generas desde el plan.');
   });
 
-  it('muestra que se está armando el plan y no aparece sin onPlan', () => {
-    expect(render(<GenerationForm unit={unit} catalog={catalog} onSubmit={noop} onPlan={noop} planning />)).toContain('Armando el plan…');
-    expect(render(<GenerationForm unit={unit} catalog={catalog} onSubmit={noop} />)).not.toContain('Planificar');
+  it('mientras se arma el plan, el formulario queda bloqueado', () => {
+    const html = render(<GenerationForm unit={unit} catalog={catalog} onPlan={noop} planning
+      initialValue={{ ...initialGenerationForm, resourceTypes: ['explicacion'] }} />);
+    expect(isDisabled(html, 'Armando el plan…')).toBe(true);
+    expect(html).toMatch(/<fieldset class="generation-fieldset" disabled="">/);
+  });
+
+  it('el formulario no tiene ninguna salida para enviar un pedido sin plan', () => {
+    const props: Parameters<typeof GenerationForm>[0] = {
+      unit,
+      catalog,
+      onPlan: noop,
+      // @ts-expect-error El formulario solo pide planes: no acepta un callback para enviar pedidos de generación.
+      onSubmit: noop,
+    };
+    expect(Object.keys(props)).toContain('onPlan');
   });
 });
 
@@ -288,7 +305,7 @@ describe('Ningún texto menciona la metodología (PLAN-R8)', () => {
     const screens = [
       view(plan),
       view(generationPlan({ status: 'approved' }), { busy: 'creating' }),
-      render(<GenerationForm unit={unit} catalog={catalog} onSubmit={noop} onPlan={noop} />),
+      render(<GenerationForm unit={unit} catalog={catalog} onPlan={noop} />),
       render(<GenerationPreview preview={previewFromRequest({ mode: 'sequence', unitId: unit.id, resourceTypes: ['explicacion'] }, unit, planTypes)}
         onConfirm={noop} onEdit={noop} />),
       render(<GenerationProgress resourceTypes={planTypes} request={{

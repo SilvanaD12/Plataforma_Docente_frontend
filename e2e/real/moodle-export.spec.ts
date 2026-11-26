@@ -6,8 +6,9 @@ import { expect, test } from '@playwright/test';
 
 /**
  * TA-002 con backend real (solo en local, no en CI): crear cuenta → curso y unidad → subir y procesar material →
- * generar un ítem de opción múltiple con el generador por reglas → aprobarlo en Revisión → descargar el Moodle XML
- * desde la interfaz y validarlo con el validador del backend (backend/tests/support/moodle_xml_validator.py).
+ * planificar un ítem de opción múltiple, aprobar el plan y generarlo con el generador por reglas → aprobarlo en
+ * Revisión → descargar el Moodle XML desde la interfaz y validarlo con el validador del backend
+ * (backend/tests/support/moodle_xml_validator.py).
  *
  * Variables de entorno (ver README, «Pruebas»):
  * - VITE_API_URL: URL del backend local (si no se define, el proxy de Vite usa http://127.0.0.1:8000).
@@ -74,13 +75,16 @@ test('de la cuenta nueva a la descarga del Moodle XML, validado con el validador
   await page.getByRole('button', { name: 'Procesar' }).click();
   await expect(page.getByText('procesado', { exact: true })).toBeVisible({ timeout: 60_000 });
 
-  // Generación: un ítem de opción múltiple (el backend local usa LLM_PROVIDER=rules).
+  // Generación: plan de un ítem de opción múltiple, aprobado, y generación desde el plan (LLM_PROVIDER=rules).
   await tabs.getByRole('link', { name: 'Generación' }).click();
   await page.getByRole('radio', { name: /Recurso individual/ }).check();
   await page.locator('summary').filter({ hasText: 'Evaluar' }).click();
   await page.getByRole('radio', { name: 'Preguntas de opción múltiple' }).check();
-  await page.getByRole('button', { name: 'Generar recurso' }).click();
-  await page.getByRole('button', { name: 'Confirmar y generar' }).click();
+  await page.getByRole('button', { name: 'Planificar', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirmar y planificar' }).click();
+  await expect(page.getByRole('heading', { name: 'Plan de generación' })).toBeVisible({ timeout: 60_000 });
+  await page.getByRole('button', { name: 'Aprobar plan' }).click();
+  await page.getByRole('button', { name: 'Generar', exact: true }).click();
   await page.getByRole('link', { name: 'Ir a Revisión' }).click({ timeout: 120_000 });
 
   // Revisión: aceptar los distractores y aprobar.

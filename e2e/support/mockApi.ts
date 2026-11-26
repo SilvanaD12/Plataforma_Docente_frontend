@@ -62,6 +62,7 @@ export async function mockApi(page: Page) {
     if (path === '/courses' && method === 'GET') return json(route, 200, [COURSE]);
     if (path === '/documents' && method === 'GET') return json(route, 200, []);
     if (path === '/generation-requests' && method === 'GET') return json(route, 200, []);
+    if (path === '/generation-plans' && method === 'GET') return json(route, 200, []);
     if (path === `/units/${UNIT.id}/resources` && method === 'GET') return json(route, 200, []);
     if (path === '/downloads' && method === 'GET') return json(route, 200, []);
     if (path === `/units/${UNIT.id}/exports` && method === 'POST') {

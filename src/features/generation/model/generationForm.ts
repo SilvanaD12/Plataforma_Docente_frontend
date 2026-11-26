@@ -90,7 +90,7 @@ export function resourceModalityWarning(form: GenerationForm, catalog: ResourceT
   return `Tipos incompatibles con la modalidad ${form.modality}: ${names}. Cambia la modalidad o descarta esos tipos para continuar.`;
 }
 
-/** Cuerpo y problema del pedido tal como se arman al pulsar «Generar». La vista previa muestra y confirma este cuerpo. */
+/** Cuerpo y problema tal como se arman al pulsar «Planificar». La vista previa lo muestra y el plan se pide con él. */
 export function generationSubmission(form: GenerationForm, unitId: string, catalog: ResourceTypeInfo[]) {
   const body = generationRequestBody({ ...form, resourceTypes: selectedResourceTypes(form, catalog) }, unitId, catalog);
   return { body, problem: resourceModalityWarning(form, catalog) ?? generationFormProblem(body) };

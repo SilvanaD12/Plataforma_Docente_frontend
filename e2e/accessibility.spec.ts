@@ -127,8 +127,8 @@ test('QA-09: evalúa la accesibilidad de las pantallas del sprint', async ({ pag
   await expect(page.getByRole('radio', { name: 'Glosario', exact: true })).toBeChecked();
   await scan(page, 'Generación con el chat interpretado');
 
-  await page.getByRole('button', { name: 'Generar recurso' }).click();
-  await expect(page.getByRole('heading', { name: 'Revisa el pedido antes de generar' })).toBeVisible();
+  await page.getByRole('button', { name: 'Planificar', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Revisa lo que vas a planificar' })).toBeVisible();
   await scan(page, 'Generación con la vista previa abierta');
 
   await page.goto(`${unitPath}/review`);

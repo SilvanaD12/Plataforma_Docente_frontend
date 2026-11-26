@@ -109,11 +109,11 @@ function CourseFormView({ course, saveCourse }: { course?: Course; saveCourse: C
           return;
         }
 
-        if (key !== undefined && cause.code === 'DUPLICATE_OUTCOME' && detail.field === 'code'
+        if (key !== undefined && cause.code === 'DUPLICATE_OUTCOME' && (detail.field === 'code' || detail.field === 'text')
             && Number.isInteger(detail.outcomeIndex) && detail.outcomeIndex >= 0) {
           const savedCount = savedUnits[key - 1]?.outcomes.length ?? 0;
           const name = detail.outcomeIndex < savedCount
-            ? `outcome-code-${key}-${detail.outcomeIndex}`
+            ? `outcome-${detail.field}-${key}-${detail.outcomeIndex}`
             : `outcomes-${key}`;
           setFieldError({ name, message });
           return;
@@ -180,7 +180,8 @@ function CourseFormView({ course, saveCourse }: { course?: Course; saveCourse: C
                     </label>
                     <label className="field">
                       <span className="field__label">Resultado de aprendizaje {outcomeIndex + 1}</span>
-                      <input className="input" name={`outcome-text-${key}-${outcomeIndex}`} defaultValue={outcome.text} maxLength={400} required />
+                      <input className="input" name={`outcome-text-${key}-${outcomeIndex}`} defaultValue={outcome.text} maxLength={400} required {...fieldAttributes(`outcome-text-${key}-${outcomeIndex}`)} />
+                      {fieldMessage(`outcome-text-${key}-${outcomeIndex}`)}
                     </label>
                   </div>
                 ))}

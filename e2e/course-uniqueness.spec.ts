@@ -16,6 +16,20 @@ const scenarios = [
     input: 'outcomes-2',
     value: 'RA1: Identifica un router',
   },
+  {
+    name: 'marca el texto duplicado de un resultado guardado',
+    code: 'DUPLICATE_OUTCOME',
+    detail: { field: 'text', unitIndex: 0, outcomeIndex: 0 },
+    input: 'outcome-text-1-0',
+    value: UNIT.outcomes[0].text,
+  },
+  {
+    name: 'marca el cuadro de un resultado nuevo con texto duplicado',
+    code: 'DUPLICATE_OUTCOME',
+    detail: { field: 'text', unitIndex: 1, outcomeIndex: 0 },
+    input: 'outcomes-2',
+    value: `RA2: ${UNIT.outcomes[0].text}`,
+  },
 ];
 
 for (const scenario of scenarios) {

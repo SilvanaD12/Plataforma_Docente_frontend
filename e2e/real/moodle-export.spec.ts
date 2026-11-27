@@ -58,7 +58,9 @@ test('de la cuenta nueva a la descarga del Moodle XML, validado con el validador
   await page.getByLabel('Nombre del curso').fill('Redes TA-002');
   await page.getByLabel('Periodo').fill('2026-II');
   await page.getByLabel('Título de la unidad').fill('Capa de transporte');
-  await page.getByLabel('Resultados de aprendizaje (opcional)').fill('RA1: Distingue TCP y UDP');
+  await page.getByRole('button', { name: 'Añadir resultado', exact: true }).click();
+  await page.getByLabel('Código del resultado 1 (opcional)', { exact: true }).fill('RA1');
+  await page.getByLabel('Resultado de aprendizaje 1', { exact: true }).fill('Distingue TCP y UDP');
   await page.getByRole('button', { name: 'Guardar curso' }).click();
   await page.goto('/courses');
   await page.getByRole('link', { name: 'Entrar al curso' }).click();

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { ApiError, errorMessage } from '../../../shared/api/httpClient';
-import { courseFormProblem, courseRequest, maxCourseUnits } from '../model/courseForm';
+import { courseFormProblem, courseRequest, maxCourseUnits, maxUnitOutcomes } from '../model/courseForm';
 import { activityTypeLabels, type ActivityType, type Course } from '../../../shared/types/courses';
 import type { CoursesContext } from './CoursesLayout';
 
@@ -28,6 +28,9 @@ function CourseFormView({ course, saveCourse }: { course?: Course; saveCourse: C
   const initialUnitCount = Math.max(1, savedUnits.length);
   const lastUnitNumber = savedUnits.reduce((latest, unit) => Math.max(latest, unit.number), 0);
   const [unitKeys, setUnitKeys] = useState(() => Array.from({ length: initialUnitCount }, (_, index) => index + 1));
+  const [outcomeKeys, setOutcomeKeys] = useState<Record<number, number[]>>(() =>
+    Object.fromEntries(savedUnits.map((unit, index) => [index + 1, unit.outcomes.map((_, outcomeIndex) => outcomeIndex)])),
+  );
   const nextUnitKey = useRef(initialUnitCount + 1);
   const cancelPath = course ? '/courses/' + encodeURIComponent(course.id) : '/courses';
   const inFlight = useRef(false);
@@ -36,11 +39,11 @@ function CourseFormView({ course, saveCourse }: { course?: Course; saveCourse: C
   const [error, setError] = useState('');
   const [fieldError, setFieldError] = useState<{ name: string; message: string } | null>(null);
 
-  function fieldAttributes(name: string, hintId?: string) {
+  function fieldAttributes(name: string) {
     const invalid = fieldError?.name === name;
     return {
       'aria-invalid': invalid || undefined,
-      'aria-describedby': [hintId, invalid ? `${name}-error` : undefined].filter(Boolean).join(' ') || undefined,
+      'aria-describedby': invalid ? `${name}-error` : undefined,
     };
   }
 
@@ -75,11 +78,10 @@ function CourseFormView({ course, saveCourse }: { course?: Course; saveCourse: C
         return {
           id: unit?.id,
           title: value(`title-${key}`),
-          outcomes: value(`outcomes-${key}`),
-          savedOutcomes: unit?.outcomes.map(({ id }, index) => ({
-            id,
-            code: value(`outcome-code-${key}-${index}`),
-            text: value(`outcome-text-${key}-${index}`),
+          outcomes: (outcomeKeys[key] ?? []).map((outcomeKey) => ({
+            id: unit?.outcomes[outcomeKey]?.id,
+            code: value(`outcome-code-${key}-${outcomeKey}`),
+            text: value(`outcome-text-${key}-${outcomeKey}`),
           })),
         };
       }),
@@ -111,12 +113,11 @@ function CourseFormView({ course, saveCourse }: { course?: Course; saveCourse: C
 
         if (key !== undefined && cause.code === 'DUPLICATE_OUTCOME' && (detail.field === 'code' || detail.field === 'text')
             && Number.isInteger(detail.outcomeIndex) && detail.outcomeIndex >= 0) {
-          const savedCount = savedUnits[key - 1]?.outcomes.length ?? 0;
-          const name = detail.outcomeIndex < savedCount
-            ? `outcome-${detail.field}-${key}-${detail.outcomeIndex}`
-            : `outcomes-${key}`;
-          setFieldError({ name, message });
-          return;
+          const outcomeKey = outcomeKeys[key]?.[detail.outcomeIndex];
+          if (outcomeKey !== undefined) {
+            setFieldError({ name: `outcome-${detail.field}-${key}-${outcomeKey}`, message });
+            return;
+          }
         }
       }
 
@@ -166,31 +167,51 @@ function CourseFormView({ course, saveCourse }: { course?: Course; saveCourse: C
           <h2 className="h2" id="course-units">Unidades y resultados de aprendizaje</h2>
           {unitKeys.map((key, index) => {
             const unit = savedUnits[key - 1];
+            const rows = outcomeKeys[key] ?? [];
             const number = unit?.number ?? lastUnitNumber + index - savedUnits.length + 1;
             return (
               <fieldset className="unit-fieldset" key={key} disabled={saving}>
                 <legend className="unit-fieldset__legend">Unidad {number}</legend>
                 <label className="field"><span className="field__label">Título de la unidad</span><input className="input" name={`title-${key}`} defaultValue={unit?.title} maxLength={150} required {...fieldAttributes(`title-${key}`)} />{fieldMessage(`title-${key}`)}</label>
-                {unit?.outcomes.map((outcome, outcomeIndex) => (
-                  <div className="course-outcome" key={outcome.id}>
-                    <label className="field">
-                      <span className="field__label">Código del resultado {outcomeIndex + 1}</span>
-                      <input className="input" name={`outcome-code-${key}-${outcomeIndex}`} defaultValue={outcome.code ?? ''} maxLength={20} {...fieldAttributes(`outcome-code-${key}-${outcomeIndex}`)} />
-                      {fieldMessage(`outcome-code-${key}-${outcomeIndex}`)}
-                    </label>
-                    <label className="field">
-                      <span className="field__label">Resultado de aprendizaje {outcomeIndex + 1}</span>
-                      <input className="input" name={`outcome-text-${key}-${outcomeIndex}`} defaultValue={outcome.text} maxLength={400} required {...fieldAttributes(`outcome-text-${key}-${outcomeIndex}`)} />
-                      {fieldMessage(`outcome-text-${key}-${outcomeIndex}`)}
-                    </label>
-                  </div>
-                ))}
-                <label className="field">
-                  <span className="field__label">{unit?.outcomes.length ? 'Añadir resultados de aprendizaje (opcional)' : 'Resultados de aprendizaje (opcional)'}</span>
-                  <textarea className="input course-textarea" name={`outcomes-${key}`} rows={3} {...fieldAttributes(`outcomes-${key}`, `outcomes-hint-${key}`)} />
-                  {fieldMessage(`outcomes-${key}`)}
-                  <span className="field__hint" id={`outcomes-hint-${key}`}>Uno por línea. Puedes indicar un código, como «RA1.1: Compara protocolos».</span>
-                </label>
+                {rows.map((outcomeKey, outcomeIndex) => {
+                  const outcome = unit?.outcomes[outcomeKey];
+                  const codeName = `outcome-code-${key}-${outcomeKey}`;
+                  const textName = `outcome-text-${key}-${outcomeKey}`;
+                  return (
+                    <div key={outcomeKey}>
+                      <div className="course-outcome">
+                        <label className="field">
+                          <span className="field__label">Código del resultado {outcomeIndex + 1} (opcional)</span>
+                          <input className="input" name={codeName} defaultValue={outcome?.code ?? ''} maxLength={20} {...fieldAttributes(codeName)} />
+                          {fieldMessage(codeName)}
+                        </label>
+                        <label className="field">
+                          <span className="field__label">Resultado de aprendizaje {outcomeIndex + 1}</span>
+                          <input className="input" name={textName} defaultValue={outcome?.text} maxLength={400} required {...fieldAttributes(textName)} />
+                          {fieldMessage(textName)}
+                        </label>
+                      </div>
+                      {!outcome && (
+                        <button className="btn" type="button" aria-label={`Quitar resultado ${outcomeIndex + 1}`} onClick={() => {
+                          setFieldError(null);
+                          setOutcomeKeys((current) => ({
+                            ...current,
+                            [key]: current[key].filter((row) => row !== outcomeKey),
+                          }));
+                        }}>Quitar resultado</button>
+                      )}
+                    </div>
+                  );
+                })}
+                <div>
+                  <button className="btn" type="button" disabled={rows.length >= maxUnitOutcomes} onClick={() => {
+                    setOutcomeKeys((current) => {
+                      const existing = current[key] ?? [];
+                      const last = existing[existing.length - 1] ?? -1;
+                      return { ...current, [key]: [...existing, last + 1] };
+                    });
+                  }}>Añadir resultado</button>
+                </div>
                 {!unit && unitKeys.length > 1 && (
                   <div><button className="btn" type="button" onClick={() => setUnitKeys((current) => current.filter((unitKey) => unitKey !== key))}>Quitar unidad</button></div>
                 )}

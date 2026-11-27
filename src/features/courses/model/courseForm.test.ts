@@ -7,7 +7,10 @@ const form = {
   term: ' 2026-II ',
   summary: ' ',
   learningGoal: ' ',
-  units: [{ title: ' Transporte ', outcomes: ' ra1.1: Compara TCP y UDP.\n\n Describe la encapsulación. ' }],
+  units: [{ title: ' Transporte ', outcomes: [
+    { code: ' RA1.1 ', text: ' Compara TCP y UDP. ' },
+    { code: ' ', text: ' Describe la encapsulación. ' },
+  ] }],
 };
 
 describe('Formulario de cursos', () => {
@@ -26,17 +29,18 @@ describe('Formulario de cursos', () => {
   it('exige un curso con al menos una unidad y un título por unidad', () => {
     expect(courseFormProblem(courseRequest({ ...form, name: '  ' }))).toMatch(/nombre/);
     expect(courseFormProblem(courseRequest({ ...form, units: [] }))).toMatch(/al menos una unidad/);
-    expect(courseFormProblem(courseRequest({ ...form, units: [{ title: '  ', outcomes: '' }] }))).toMatch(/título de la unidad 1/);
+    expect(courseFormProblem(courseRequest({ ...form, units: [{ title: '  ', outcomes: [] }] }))).toMatch(/título de la unidad 1/);
   });
 
   it('conserva los identificadores guardados y omite los de las unidades y resultados nuevos', () => {
     const request = courseRequest({
       ...form,
       units: [
-        { id: 'unidad-guardada', title: 'Transporte', outcomes: 'Resultado nuevo', savedOutcomes: [
+        { id: 'unidad-guardada', title: 'Transporte', outcomes: [
           { id: 'resultado-guardado', code: 'RA1.1', text: 'Texto actualizado' },
+          { code: '', text: 'Resultado nuevo' },
         ] },
-        { title: 'Capa de red', outcomes: '' },
+        { title: 'Capa de red', outcomes: [] },
       ],
     });
 

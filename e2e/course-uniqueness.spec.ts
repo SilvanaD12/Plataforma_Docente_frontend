@@ -13,8 +13,8 @@ const scenarios = [
     name: 'marca el cuadro del resultado nuevo cuando su codigo se repite',
     code: 'DUPLICATE_OUTCOME',
     detail: { field: 'code', unitIndex: 1, outcomeIndex: 0 },
-    input: 'outcomes-2',
-    value: 'RA1: Identifica un router',
+    input: 'outcome-code-2-1',
+    value: 'RA1',
   },
   {
     name: 'marca el texto duplicado de un resultado guardado',
@@ -27,8 +27,8 @@ const scenarios = [
     name: 'marca el cuadro de un resultado nuevo con texto duplicado',
     code: 'DUPLICATE_OUTCOME',
     detail: { field: 'text', unitIndex: 1, outcomeIndex: 0 },
-    input: 'outcomes-2',
-    value: `RA2: ${UNIT.outcomes[0].text}`,
+    input: 'outcome-text-2-1',
+    value: UNIT.outcomes[0].text,
   },
 ];
 
@@ -50,6 +50,15 @@ for (const scenario of scenarios) {
     await expect(page.getByRole('heading', { name: 'Editar curso' })).toBeVisible();
     await page.getByRole('button', { name: 'A\u00f1adir unidad' }).click();
     await page.locator('[name="title-2"]').fill('Dispositivos');
+
+    if (scenario.input.startsWith('outcome-') && scenario.detail.unitIndex === 1) {
+      const unit = page.getByRole('group', { name: 'Unidad 2', exact: true });
+      const addOutcome = unit.getByRole('button', { name: 'Añadir resultado' });
+      await addOutcome.click();
+      await addOutcome.click();
+      await unit.getByRole('button', { name: 'Quitar resultado 1' }).click();
+      await unit.getByLabel('Resultado de aprendizaje 1', { exact: true }).fill('Identifica un router');
+    }
 
     const field = page.locator(`[name="${scenario.input}"]`);
     await field.fill(scenario.value);

@@ -1,14 +1,12 @@
 import type { ActivityType } from '../../../shared/types/courses';
 
 export const maxCourseUnits = 50;
-const maxUnitOutcomes = 20;
-const outcomePrefix = /^([A-Za-z]{1,4}[ -]?\d+(?:\.\d+)*)\s*[:.)-]\s+(.+)$/;
+export const maxUnitOutcomes = 20;
 
 interface UnitForm {
   id?: string;
   title: string;
-  outcomes: string;
-  savedOutcomes?: { id: string; code: string; text: string }[];
+  outcomes: { id?: string; code: string; text: string }[];
 }
 
 export interface CourseForm {
@@ -33,16 +31,17 @@ export function courseRequest(form: CourseForm) {
     ...(form.educationLevel === undefined ? {} : { educationLevel: form.educationLevel.trim() }),
     ...(form.academicCycle === undefined ? {} : { academicCycle: form.academicCycle.trim() }),
     ...(form.activityType === undefined ? {} : { activityType: form.activityType }),
-    units: form.units.map(({ id, title, outcomes, savedOutcomes = [] }) => ({
+    units: form.units.map(({ id, title, outcomes }) => ({
       ...(id ? { id } : {}),
       title: title.trim(),
-      outcomes: [
-        ...savedOutcomes.map((outcome) => ({ id: outcome.id, code: outcome.code.trim() || undefined, text: outcome.text.trim() })),
-        ...outcomes.split('\n').map((line) => line.trim()).filter(Boolean).map((line) => {
-          const match = line.match(outcomePrefix);
-          return match ? { code: match[1].toUpperCase(), text: match[2].trim() } : { text: line };
-        }),
-      ],
+      outcomes: outcomes.map(({ id, code, text }) => {
+        const trimmedCode = code.trim();
+        return {
+          ...(id ? { id } : {}),
+          ...(trimmedCode ? { code: trimmedCode } : {}),
+          text: text.trim(),
+        };
+      }),
     })),
   };
 }
@@ -56,7 +55,7 @@ export function courseFormProblem(course: CourseRequest): string | null {
   for (const [index, unit] of course.units.entries()) {
     const number = index + 1;
     if (!unit.title) return `Escribe el título de la unidad ${number}.`;
-    if (unit.outcomes.some(({ text }) => !text)) return `Completa los resultados guardados de la unidad ${number}.`;
+    if (unit.outcomes.some(({ text }) => !text)) return `Completa los resultados de la unidad ${number}.`;
     if (unit.outcomes.length > maxUnitOutcomes) return `La unidad ${number} admite hasta 20 resultados de aprendizaje.`;
     if (unit.outcomes.some(({ code, text }) => (code && code.length > 20) || text.length > 400)) {
       return `En la unidad ${number}, cada resultado admite 400 caracteres y su código, hasta 20.`;

@@ -19,6 +19,7 @@ export interface CourseForm {
   academicCycle?: string;
   activityType?: ActivityType | '';
   units: UnitForm[];
+  removedUnitIds?: string[];
 }
 
 export function courseRequest(form: CourseForm) {
@@ -31,6 +32,7 @@ export function courseRequest(form: CourseForm) {
     ...(form.educationLevel === undefined ? {} : { educationLevel: form.educationLevel.trim() }),
     ...(form.academicCycle === undefined ? {} : { academicCycle: form.academicCycle.trim() }),
     ...(form.activityType === undefined ? {} : { activityType: form.activityType }),
+    ...(form.removedUnitIds?.length ? { removedUnitIds: form.removedUnitIds } : {}),
     units: form.units.map(({ id, title, outcomes }) => ({
       ...(id ? { id } : {}),
       title: title.trim(),

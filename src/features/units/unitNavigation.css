@@ -9,3 +9,19 @@
   border-color: var(--color-accent);
   color: var(--color-accent-dark);
 }
+
+.unit-progress-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.unit-progress-metrics dt {
+  font-weight: 600;
+}
+
+.unit-progress-metrics dd {
+  margin: 0;
+  padding-top: var(--space-1);
+}
